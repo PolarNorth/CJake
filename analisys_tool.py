@@ -13,17 +13,34 @@ PROCESS_DIRS = True
 # Formatting varaibles
 
 PRINT_ALL = True
-USAEGE_VIEW = True
+USAGE_VIEW = True
 
 class DependencyNode:
     def __init__(self, file_path, name, parent):
         self.file_path = file_path
         self.name = name
-        self.dependent_nodes = []
+        self.dependencies = []
         self.parents = []
         if parent:
-            self.parents = [parent]
+            self.add_parent(parent)
         self.implementation = None
+    
+    def _find_node(self, search_list, target):
+        for node in search_list:
+            if node.name == target.name:
+                return True
+        return False
+
+    def add_parent(self, parent):   # TODO : possible performance bottleneck
+        # Check if this parent already exists
+        if not self._find_node(self.parents, parent):
+            self.parents.append(parent)
+            parent.add_dependency(self)
+    
+    def add_dependency(self, dep):
+        if not self._find_node(self.dependencies, dep):
+            self.dependencies.append(dep)
+            dep.add_parent(self)
 
 class Analyzer:
         
@@ -61,7 +78,7 @@ class Analyzer:
     def __init__(self, json_file):
         self.targets = None
         self.known_dependencies = []
-        self.unknown_dependencies = []
+        self.edge_dependencies = []
         self.processing_stack = []
         with open(TARGETS_JSON_FILE) as json_file:
             self.targets = json.load(json_file)
@@ -81,6 +98,9 @@ class Analyzer:
         # Extracting files to search
         self.search_files = self._extract_files_from_dirs(self.targets['Search_dirs'])
 
+        # Extracting files to search edge files
+        self.edge_dirs = self._extract_files_from_dirs(self.targets['Edge_search_dirs'])
+
 
     def is_known_node(self, dep):
         for d in self.known_dependencies:
@@ -94,8 +114,8 @@ class Analyzer:
                 return d
         return None
     
-    def find_unknown_dep_name(self, d_name):
-        for d in self.unknown_dependencies:
+    def is_edge_dep_name(self, d_name):
+        for d in self.edge_dependencies:
             if d.name == d_name:
                 return d
         return None
@@ -108,6 +128,13 @@ class Analyzer:
                 return path
         return None
 
+    def find_edge_filepath(self, edge_dep_name):
+        for path in self.edge_dirs:
+            if path.endswith(edge_dep_name):
+                return path
+        print("WARNING : Edge dependency '{}' filepath not found ".format(edge_dep_name))
+        return None
+
     def find_includes(self, dep_node):
         dependency_list = []
         with open(dep_node.file_path) as f:
@@ -116,7 +143,7 @@ class Analyzer:
                 # is used by OpenJDK developers)
 
                 # new_include = re.findall(r"#include (\".*\"|<.*>)", content)  
-                
+
                 new_include = re.findall(r"#include (\".*\"|<.*>)", content)
                 if new_include:
                     # Cutting brackets
@@ -161,9 +188,9 @@ class Analyzer:
         return None
 
 
-    def print_unknown_deps(self):
-        filtered_deps = sorted(self.unknown_dependencies, key=lambda x: x.name)
-        if USAEGE_VIEW: # Print usage of dependencies by searched files
+    def print_edge_deps(self):
+        filtered_deps = sorted(self.edge_dependencies, key=lambda x: x.name)
+        if USAGE_VIEW: # Print usage of dependencies by searched files
             files = {}
             for d in filtered_deps:
                 for f in d.parents:
@@ -180,7 +207,7 @@ class Analyzer:
                     print("'{}' used by {} : {}".format(d.name, len(d.parents), [p.name for p in d.parents]))
                 else:
                     print("'{}' used by {}".format(d.name, len(d.parents)))
-        print("Overall unknown files: {}".format(len(self.unknown_dependencies)))
+        print("Overall edge files: {}".format(len(self.edge_dependencies)))
 
     def resolve(self):
         # Loading starting files
@@ -190,7 +217,7 @@ class Analyzer:
         # Building trees. There are 3 states of files: 
         # new -> not processed yet, 
         # known -> found in search directories, 
-        # unknown -> not found in search diorectories, leaf node.
+        # edge -> not found in search diorectories, leaf node.
         while self.processing_stack:
             current_file = self.processing_stack.pop()
             # if current_file in self.known_dependencies:
@@ -202,11 +229,13 @@ class Analyzer:
                 # Process new nodes
                 d_node = self.is_known_dep_name(d_name) # If known and already know, add parent
                 if d_node:
-                    d_node.parents.append(current_file)
+                    # d_node.parents.append(current_file)
+                    d_node.add_parent(current_file)
                 else:
-                    d_node = self.find_unknown_dep_name(d_name) #If unknown and already have, add parent
+                    d_node = self.is_edge_dep_name(d_name) #If edge and already have, add parent
                     if d_node:
-                        d_node.parents.append(current_file)
+                        # d_node.parents.append(current_file)
+                        d_node.add_parent(current_file)
                     else:   # Else try to find in search files and add to needed list
                         d_path = self.find_file(d_name)
                         d_node = DependencyNode(d_path, d_name, current_file)
@@ -219,9 +248,15 @@ class Analyzer:
                                 self.processing_stack.append(i_node)
                                 d_node.implementation = i_node
                         else:
-                            self.unknown_dependencies.append(d_node)
+                            self.edge_dependencies.append(d_node)
+
+        # Processing edge files
+        for e_node in self.edge_dependencies:
+            e_node.file_path = self.find_edge_filepath(e_node.name)
         
-        self.print_unknown_deps()
+
+
+        self.print_edge_deps()
 
         
             
