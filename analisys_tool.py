@@ -112,6 +112,11 @@ class Analyzer:
         dependency_list = []
         with open(dep_node.file_path) as f:
             for str_idx, content in enumerate(f):
+                # Seems that this pattern finds only platform independent includes (probably some programming convention
+                # is used by OpenJDK developers)
+
+                # new_include = re.findall(r"#include (\".*\"|<.*>)", content)  
+                
                 new_include = re.findall(r"#include (\".*\"|<.*>)", content)
                 if new_include:
                     # Cutting brackets
