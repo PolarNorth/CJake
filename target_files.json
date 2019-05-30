@@ -19,5 +19,17 @@
 
     ],
     "Dirs" : ["../jdk8/jdk/src/share/native/java/lang"],
-    "Search_dirs" : ["../jdk8/hotspot/src/share/vm/prims", "../jdk8/jdk/src/share/native/java/lang", "../headers_generation/generated"]
+    "Search_dirs" : [
+        "../jdk8/hotspot/src/share/vm/prims",
+        "../jdk8/jdk/src/share/native/java/lang",
+        "../headers_generation/generated"
+    ],
+    "Edge_search_dirs" : [
+        "../jdk8/hotspot/src/share/vm",
+        "../jdk8/hotspot/src/os/linux/vm",
+        "../jdk8/hotspot/src/cpu/x86/vm",
+        "../jdk8/hotspot/src/share/vm/prims",
+        "../jdk8/hotspot/src/share/vm/precompiled",
+        "generated/"
+    ]
 }
