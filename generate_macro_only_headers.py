@@ -3,9 +3,22 @@ import json
 import re
 from pathlib import Path
 
+GENERATE_STUB_FILES = True
+
 HEADER_FORMATS = (".h", ".hpp")
-SOURCE_DIRS = ["../headers_generation/generated"]
-OUTPUT_DIR = "macros_headers"
+# SOURCE_DIRS = ["../headers_generation/generated"]
+# SOURCE_DIRS = ["/usr/include"]
+SOURCE_DIRS = [
+    "/usr/include/c++/7",
+    "/usr/include/x86_64-linux-gnu/c++/7",
+    "/usr/include/c++/7/backward",
+    "/usr/lib/gcc/x86_64-linux-gnu/7/include",
+    "/usr/local/include",
+    "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed",
+    "/usr/include",
+]
+
+OUTPUT_DIR = "macros_headers/c_cpp_standard"
 
 DEBUG = True
 
@@ -88,7 +101,10 @@ def copy_headers(search_dirs):
                 new_file_path = os.path.join(OUTPUT_DIR, dirname, path_in_dir)
                 if DEBUG:
                     print("Processing file '{}'".format(file_path))
-                copy_directives(file_path, new_file_path)
+                if GENERATE_STUB_FILES:
+                    Path(new_file_path).touch()
+                else:
+                    copy_directives(file_path, new_file_path)
                 # print(file_path)
 
     

@@ -1,6 +1,9 @@
 import os
 import json
 import re
+import tempfile
+import subprocess
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 TARGETS_JSON_FILE = "target_files.json"
@@ -12,8 +15,8 @@ PROCESS_DIRS = True
 
 # Formatting varaibles
 
-PRINT_ALL = True
-USAGE_VIEW = True
+PRINT_ALL = False
+USAGE_VIEW = False
 
 class DependencyNode:
     def __init__(self, file_path, name, parent):
@@ -24,6 +27,7 @@ class DependencyNode:
         if parent:
             self.add_parent(parent)
         self.implementation = None
+        self.structute = None
     
     def _find_node(self, search_list, target):
         for node in search_list:
@@ -41,6 +45,68 @@ class DependencyNode:
         if not self._find_node(self.dependencies, dep):
             self.dependencies.append(dep)
             dep.add_parent(self)
+    
+    def extract_functions(self, includes):
+        if not self.file_path:
+            return
+        # Creating temporary directory to work with
+        with tempfile.TemporaryDirectory() as tempdir:
+            # tempdir = "./temp" # debug
+            extension = os.path.splitext(self.file_path)
+            prep_file_path = os.path.join(tempdir, "prep{}".format(extension[1]))
+
+            # prep_file_path = os.path.join(tempdir, os.path.basename(self.file_path))
+            # Creating temprorary file containing source code
+            with open(prep_file_path, "w+") as prep_file:
+                # Preprocessing source code
+                gcc_command = ["gcc"]
+                for path in includes:
+                    gcc_command.append("-I" + path)
+                gcc_command.append("-E")
+                gcc_command.append("-P")
+                gcc_command.append(self.file_path)
+                subprocess.run(gcc_command, stdout=prep_file)
+
+                # Run doxygen
+
+                doxy_command = ["doxygen"]
+                doxy_command.append(os.path.join(os.getcwd(), "Doxyfile"))
+                doxy_process = subprocess.Popen(doxy_command, cwd=tempdir)
+                doxy_process.wait()
+
+                # Extract information from XML
+
+                file_structure = {
+                    "class":[],
+                    "function":[],
+                    "variable":[],
+                    "typedef":[]
+                }
+
+                doxy_xml_path = os.path.join(tempdir, "xml", "{}_8{}.{}".format("prep", extension[1][1:], "xml"))
+                with open(doxy_xml_path) as doxy_xml:
+                    tree = ET.parse(doxy_xml)
+                    root = tree.getroot()
+                    file_info = root[0]
+                    print(file_info.tag)
+                    print(file_info.text)
+                    for section in file_info:
+                        if section.tag == "innerclass":
+                            file_structure["class"].append(section.text)
+                        elif section.tag == "sectiondef":
+                            for member in section:
+                                if not member.get("kind") in file_structure.keys():
+                                    print("WARNING : New type {} appeared in the file structure".format(member.find("name").text))
+                                    file_structure[member.get("kind")] = [member]
+                                else:
+                                    file_structure[member.get("kind")].append(member.find("name").text)
+                        print("<{}> {} {}".format(section.tag, section.get("kind"), section.find("name")))
+                    print(file_structure)
+                    self.structute = file_structure
+
+                
+
+            # os.system("gcc {} > {}/prep.{}")
 
 class Analyzer:
         
@@ -101,6 +167,8 @@ class Analyzer:
         # Extracting files to search edge files
         self.edge_dirs = self._extract_files_from_dirs(self.targets['Edge_search_dirs'])
 
+        # Preprocessing includes
+        self.preprocessing_includes = self.targets["Preprocessing_includes"]
 
     def is_known_node(self, dep):
         for d in self.known_dependencies:
@@ -253,6 +321,9 @@ class Analyzer:
         # Processing edge files
         for e_node in self.edge_dependencies:
             e_node.file_path = self.find_edge_filepath(e_node.name)
+
+            # TODO : REMOVE! Needed for testing purposes
+            e_node.extract_functions(self.preprocessing_includes)
         
 
 
@@ -267,10 +338,23 @@ class Analyzer:
 
 
 if __name__ == "__main__":
-    # targets = None
-    # with open(TARGETS_JSON_FILE) as json_file:
-    #     targets = json.load(json_file)
 
-    # known_dependencies = []
-    tool = Analyzer(TARGETS_JSON_FILE)
-    tool.resolve()
+    # tool = Analyzer(TARGETS_JSON_FILE)
+    # tool.resolve()
+
+    # Debug code
+
+    includes = [
+        "macros_headers/jdk8/hotspot/src/share/vm",
+        "macros_headers/jdk8/hotspot/src/share/vm/prims",
+        "macros_headers/jdk8/hotspot/src/share/vm/precompiled",
+        "macros_headers/jdk8/hotspot/src/cpu/x86/vm/prims",
+        "macros_headers/jdk8/hotspot/src/cpu/x86/vm",
+        "macros_headers/generated",
+        "macros_headers/c_cpp_standard/7",
+        "macros_headers/c_cpp_standard/backward",
+        "macros_headers/c_cpp_standard/include",
+        "macros_headers/c_cpp_standard/include-fixed",
+    ]
+    dn = DependencyNode("../jdk8/hotspot/src/share/vm/prims/jvm.cpp", "jvm.cpp", None)
+    dn.extract_functions(includes)
