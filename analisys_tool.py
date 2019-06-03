@@ -5,6 +5,7 @@ import tempfile
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from collections import deque
 
 TARGETS_JSON_FILE = "target_files.json"
 FORMATS = (".cpp", ".c", ".h", ".hpp")
@@ -19,7 +20,7 @@ PRINT_ALL = False
 USAGE_VIEW = False
 
 class DependencyNode:
-    def __init__(self, file_path, name, parent):
+    def __init__(self, file_path, name, parent, preprocessing_includes):
         self.file_path = file_path
         self.name = name
         self.dependencies = []
@@ -27,7 +28,16 @@ class DependencyNode:
         if parent:
             self.add_parent(parent)
         self.implementation = None
-        self.structute = None
+        self.structure = None
+        self.required_functions = {}    # name -> {name, start_line, end_line}
+                                        # Dictionary is needed to keep uniqueness of function entities
+        self.root = False
+
+        # Extract structure
+        self.extract_functions(preprocessing_includes)
+
+    def set_as_root(self):
+        self.root = True
     
     def _find_node(self, search_list, target):
         for node in search_list:
@@ -71,14 +81,14 @@ class DependencyNode:
 
                 doxy_command = ["doxygen"]
                 doxy_command.append(os.path.join(os.getcwd(), "Doxyfile"))
-                doxy_process = subprocess.Popen(doxy_command, cwd=tempdir)
+                doxy_process = subprocess.Popen(doxy_command, cwd=tempdir, stdout=subprocess.DEVNULL)
                 doxy_process.wait()
 
                 # Extract information from XML
 
                 file_structure = {
                     "class":[],
-                    "function":[],
+                    "function":[],  # TODO : Need more information to store about functions (bodystart, bodyend)
                     "variable":[],
                     "typedef":[]
                 }
@@ -88,25 +98,92 @@ class DependencyNode:
                     tree = ET.parse(doxy_xml)
                     root = tree.getroot()
                     file_info = root[0]
-                    print(file_info.tag)
-                    print(file_info.text)
+                    # print(file_info.tag)
+                    # print(file_info.text)
                     for section in file_info:
                         if section.tag == "innerclass":
                             file_structure["class"].append(section.text)
                         elif section.tag == "sectiondef":
                             for member in section:
+                                struct = {
+                                    "name" : member.find("name").text,
+                                    "start_line" : member.find("location").get("bodystart"),
+                                    "end_line" : member.find("location").get("bodyend"),
+                                }
                                 if not member.get("kind") in file_structure.keys():
                                     print("WARNING : New type {} appeared in the file structure".format(member.find("name").text))
-                                    file_structure[member.get("kind")] = [member]
+                                    file_structure[member.get("kind")] = [struct]
                                 else:
-                                    file_structure[member.get("kind")].append(member.find("name").text)
-                        print("<{}> {} {}".format(section.tag, section.get("kind"), section.find("name")))
-                    print(file_structure)
-                    self.structute = file_structure
-
-                
+                                    # file_structure[member.get("kind")].append(member.find("name").text)
+                                    file_structure[member.get("kind")].append(struct)
+                        # print("<{}> {} {}".format(section.tag, section.get("kind"), section.find("name")))
+                    # print(file_structure)
+                    self.structure = file_structure
 
             # os.system("gcc {} > {}/prep.{}")
+        
+    def find_used_functions(self):
+            
+
+        # Go through dependencies and make dictionary of them
+        keywords_table = {}
+        for dep in self.dependencies:
+            # for name in dep.values():
+            if not dep:
+                print("WARNING : None is passed as dependency")
+                continue
+            if not dep.file_path:
+                print("WARNING : file '{}' not found to find usages".format(dep.name))
+                continue
+            print("DEBUG : path='{}', structure='{}'".format(dep.file_path, str(dep.structure)))
+            print("DEBUG : structure[function] = {}".format(dep.structure["function"]))
+            for func in dep.structure["function"]:
+                keywords_table[func["name"]] = (dep, func)
+        
+        # Find subset of included keywords
+        appeared_keywords = set()
+        pattern = "|".join(keywords_table.keys())   # regex pattern
+        print("DEBUG : Patter applied '{}'".format(pattern))
+
+        # if not self.required_functions:
+        if self.root:
+            with open(self.file_path) as f:
+                for str_idx, content in enumerate(f):
+                    [appeared_keywords.add(key) for key in re.findall(pattern, content)]
+        else:
+            # Create list of needed lines
+            target_lines = []
+            for func in self.required_functions.values():
+                target_lines.append((func["start_line"], func["end_line"]))
+            target_lines = sorted(target_lines, key=lambda x : x[0])
+
+            # re.findall if needed line is reached
+            with open(self.file_path) as f:
+                current_range_idx = 0
+                for str_idx, content in enumerate(f):
+                    if current_range_idx == len(target_lines):
+                        break   # No more ranges left
+                    current_range = target_lines[current_range_idx]
+                    # Append result of re.findall if it is body of needed element
+                    if (current_range[0] - 1 <= str_idx and str_idx <= current_range[1] - 1) \
+                        or (current_range[1] == -1 and current_range[0] - 1 == str_idx):
+                        [appeared_keywords.add(key) for key in re.findall(pattern, content)]
+                    if str_idx > current_range[1] - 1:   # Current range is ended
+                        current_range_idx += 1
+
+
+        # Add required functions to corresponding nodes
+        for key in appeared_keywords:
+            print("DEBUG : found key: '{}'".format(key))
+            if not key in keywords_table.keys():
+                print("WARNING : Unknown key was found ({})".format(key))
+                continue
+            keyword_node = keywords_table[key][0]
+            keyword_function = keywords_table[key][1]
+            # if key in keyword_node.structure["function"]:
+            # keyword_node.required_functions.add(keyword_function)
+            keyword_node.required_functions[key] = keyword_function
+
 
 class Analyzer:
         
@@ -145,6 +222,7 @@ class Analyzer:
         self.targets = None
         self.known_dependencies = []
         self.edge_dependencies = []
+        self.root_nodes = []
         self.processing_stack = []
         with open(TARGETS_JSON_FILE) as json_file:
             self.targets = json.load(json_file)
@@ -280,7 +358,10 @@ class Analyzer:
     def resolve(self):
         # Loading starting files
         for f in self.starting_files:
-            self.processing_stack.append(DependencyNode(f, os.path.basename(f), None))
+            root_node = DependencyNode(f, os.path.basename(f), None, self.preprocessing_includes)
+            root_node.set_as_root()
+            self.root_nodes.append(root_node)
+            self.processing_stack.append(root_node)
 
         # Building trees. There are 3 states of files: 
         # new -> not processed yet, 
@@ -306,24 +387,92 @@ class Analyzer:
                         d_node.add_parent(current_file)
                     else:   # Else try to find in search files and add to needed list
                         d_path = self.find_file(d_name)
-                        d_node = DependencyNode(d_path, d_name, current_file)
+                        d_node = DependencyNode(d_path, d_name, current_file, self.preprocessing_includes)
                         if d_path:
                             self.processing_stack.append(d_node)
                             # Find implementation if it is header and add to stack
                             i_path = self.find_header_implementation(d_path)
                             if i_path:
-                                i_node = DependencyNode(i_path, os.path.basename(i_path), current_file)
+                                i_node = DependencyNode(i_path, os.path.basename(i_path), current_file, self.preprocessing_includes)
                                 self.processing_stack.append(i_node)
                                 d_node.implementation = i_node
                         else:
                             self.edge_dependencies.append(d_node)
 
         # Processing edge files
+        not_found_files = set()
+
         for e_node in self.edge_dependencies:
             e_node.file_path = self.find_edge_filepath(e_node.name)
-
-            # TODO : REMOVE! Needed for testing purposes
+            if not e_node.file_path:
+                not_found_files.add(e_node.name)
             e_node.extract_functions(self.preprocessing_includes)
+                
+        # # Extracting functions for the whole tree
+        # for node in self.known_dependencies:
+        #     if not node.structure:
+        #         node.extract_functions(self.preprocessing_includes)
+        #     else:
+        #         print("WARNING : duplicating file in known_dependencies '{}'".format(node.name))
+        
+        # for node in self.edge_dependencies:
+        #     if not node.structure and not node.name in not_found_files:
+        #         node.extract_functions(self.preprocessing_includes)
+        #     else:
+        #         print("WARNING : duplicating file in edge_dependencies '{}'".format(node.name))
+        
+        # Debug information to be displayed
+
+        print("jvm.h in known [{}], in edge [{}]".format(str(any([d.name == "jvm.h" for d in self.known_dependencies])),\
+                                                         str(any([d.name == "jvm.h" for d in self.edge_dependencies]))))
+
+        # End debug
+
+
+        # Analyzing dependent functions
+        dep_parents = {}    # file path -> number of unprocessed parents
+        added_to_queue = {}
+        for node in self.known_dependencies:
+            # dep_parents[node.file_path] = [p.file_path for p in node.parents]
+            dep_parents[node.file_path] = len(node.parents)
+            added_to_queue[node.file_path] = False
+        
+        for node in self.edge_dependencies:
+            # dep_parents[node.file_path] = [p.file_path for p in node.parents]
+            dep_parents[node.file_path] = len(node.parents)
+            added_to_queue[node.file_path] = False
+    
+
+        # Queue to use
+        code_processing_queue = deque()
+
+        # Process root nodes first
+        for node in self.root_nodes:
+            code_processing_queue.append(node)
+
+        while code_processing_queue:
+            current_node = code_processing_queue.popleft()
+            if current_node.name in not_found_files:
+                continue
+            current_node.find_used_functions()
+            for dep in current_node.dependencies:
+                dep_parents[dep.file_path] -= 1
+                if dep_parents[dep.file_path] == 0:
+                    if not added_to_queue[dep.file_path]:
+                        code_processing_queue.append(dep)
+                        added_to_queue[dep.file_path] = True
+                    else:
+                        print("WARNING : Tried to add to the queue after the last parent '{}'".format(dep.file_path))
+        
+        # Check if any file left unprocessed
+        for file_path, parents_count in dep_parents.items():
+            if parents_count != 0:
+                print("WARNING : '{}' left unprocessed".format(file_path))
+        
+
+
+
+
         
 
 
@@ -339,22 +488,30 @@ class Analyzer:
 
 if __name__ == "__main__":
 
-    # tool = Analyzer(TARGETS_JSON_FILE)
-    # tool.resolve()
+    tool = Analyzer(TARGETS_JSON_FILE)
+    tool.resolve()
 
     # Debug code
 
-    includes = [
-        "macros_headers/jdk8/hotspot/src/share/vm",
-        "macros_headers/jdk8/hotspot/src/share/vm/prims",
-        "macros_headers/jdk8/hotspot/src/share/vm/precompiled",
-        "macros_headers/jdk8/hotspot/src/cpu/x86/vm/prims",
-        "macros_headers/jdk8/hotspot/src/cpu/x86/vm",
-        "macros_headers/generated",
-        "macros_headers/c_cpp_standard/7",
-        "macros_headers/c_cpp_standard/backward",
-        "macros_headers/c_cpp_standard/include",
-        "macros_headers/c_cpp_standard/include-fixed",
-    ]
-    dn = DependencyNode("../jdk8/hotspot/src/share/vm/prims/jvm.cpp", "jvm.cpp", None)
-    dn.extract_functions(includes)
+    # includes = [
+    #     "macros_headers/jdk8/hotspot/src/share/vm",
+    #     "macros_headers/jdk8/hotspot/src/share/vm/prims",
+    #     "macros_headers/jdk8/hotspot/src/share/vm/precompiled",
+    #     "macros_headers/jdk8/hotspot/src/cpu/x86/vm/prims",
+    #     "macros_headers/jdk8/hotspot/src/cpu/x86/vm",
+    #     "macros_headers/generated",
+    #     "macros_headers/c_cpp_standard/7",
+    #     "macros_headers/c_cpp_standard/backward",
+    #     "macros_headers/c_cpp_standard/include",
+    #     "macros_headers/c_cpp_standard/include-fixed",
+    # ]
+    # dn = DependencyNode("../jdk8/hotspot/src/share/vm/prims/jvm.cpp", "jvm.cpp", None)
+    # dn.extract_functions(includes)
+    # for dep in dn.dependencies:
+    #     dep.extract_functions()
+    # dn.set_as_root()
+    # dn.find_used_functions()
+    # for dep in dn.dependencies:
+    #     print("{} : {}".format(dep.name, dep.required_functions))
+
+    
