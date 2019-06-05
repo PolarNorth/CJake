@@ -27,7 +27,7 @@ class DependencyNode:
         self.parents = []
         if parent:
             self.add_parent(parent)
-        self.implementation = None
+        # self.implementation = None
         self.structure = None
         self.required_functions = {}    # name -> {name, start_line, end_line}
                                         # Dictionary is needed to keep uniqueness of function entities
@@ -105,10 +105,19 @@ class DependencyNode:
                             file_structure["class"].append(section.text)
                         elif section.tag == "sectiondef":
                             for member in section:
+                                # Convert line numbers to int of not None 
+                                start_line = member.find("location").get("bodystart")
+                                if start_line:
+                                    start_line = int(start_line)
+
+                                end_line = member.find("location").get("bodyend")
+                                if end_line:
+                                    end_line = int(end_line)
+
                                 struct = {
                                     "name" : member.find("name").text,
-                                    "start_line" : member.find("location").get("bodystart"),
-                                    "end_line" : member.find("location").get("bodyend"),
+                                    "start_line" : start_line,
+                                    "end_line" : end_line,
                                 }
                                 if not member.get("kind") in file_structure.keys():
                                     print("WARNING : New type {} appeared in the file structure".format(member.find("name").text))
@@ -146,7 +155,7 @@ class DependencyNode:
         print("DEBUG : Patter applied '{}'".format(pattern))
 
         # if not self.required_functions:
-        if self.root:
+        if self.root:   # If it is a root node, go through the whole file
             with open(self.file_path) as f:
                 for str_idx, content in enumerate(f):
                     [appeared_keywords.add(key) for key in re.findall(pattern, content)]
@@ -154,6 +163,10 @@ class DependencyNode:
             # Create list of needed lines
             target_lines = []
             for func in self.required_functions.values():
+                # functions having no body_start or body_end assumed to be prototypes
+                if not func["start_line"] or not func["end_line"]:
+                    continue
+
                 target_lines.append((func["start_line"], func["end_line"]))
             target_lines = sorted(target_lines, key=lambda x : x[0])
 
@@ -164,6 +177,12 @@ class DependencyNode:
                     if current_range_idx == len(target_lines):
                         break   # No more ranges left
                     current_range = target_lines[current_range_idx]
+                    # Debug TODO : REMOVE
+                    if isinstance(current_range[0], str):
+                        print("DEBUG : str found instead of int '{}'".format(current_range[0]))
+                    if isinstance(current_range[1], str):
+                        print("DEBUG : str found instead of int '{}'".format(current_range[1]))
+
                     # Append result of re.findall if it is body of needed element
                     if (current_range[0] - 1 <= str_idx and str_idx <= current_range[1] - 1) \
                         or (current_range[1] == -1 and current_range[0] - 1 == str_idx):
@@ -354,6 +373,13 @@ class Analyzer:
                 else:
                     print("'{}' used by {}".format(d.name, len(d.parents)))
         print("Overall edge files: {}".format(len(self.edge_dependencies)))
+    
+    def print_edge_functions_report(self):
+        print("#################### Functions report ####################")
+        for dep in self.edge_dependencies:
+            print("Module '{}', filepath '{}'".format(dep.name, dep.file_path))
+            for f_name in dep.required_functions.keys():
+                print("    {},".format(f_name))
 
     def resolve(self):
         # Loading starting files
@@ -387,16 +413,16 @@ class Analyzer:
                         d_node.add_parent(current_file)
                     else:   # Else try to find in search files and add to needed list
                         d_path = self.find_file(d_name)
-                        d_node = DependencyNode(d_path, d_name, current_file, self.preprocessing_includes)
                         if d_path:
-                            self.processing_stack.append(d_node)
-                            # Find implementation if it is header and add to stack
+                            # Find implementation and use its path to extract needed information
                             i_path = self.find_header_implementation(d_path)
                             if i_path:
-                                i_node = DependencyNode(i_path, os.path.basename(i_path), current_file, self.preprocessing_includes)
-                                self.processing_stack.append(i_node)
-                                d_node.implementation = i_node
+                                d_node = DependencyNode(i_path, d_name, current_file, self.preprocessing_includes)
+                            else:
+                                d_node = DependencyNode(d_path, d_name, current_file, self.preprocessing_includes)
+                            self.processing_stack.append(d_node)
                         else:
+                            d_node = DependencyNode(d_path, d_name, current_file, self.preprocessing_includes)
                             self.edge_dependencies.append(d_node)
 
         # Processing edge files
@@ -469,14 +495,10 @@ class Analyzer:
             if parents_count != 0:
                 print("WARNING : '{}' left unprocessed".format(file_path))
         
-
-
-
-
-        
-
-
+        # Output needed results
         self.print_edge_deps()
+
+        self.print_edge_functions_report()
 
         
             
