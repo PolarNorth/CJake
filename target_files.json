@@ -29,8 +29,7 @@
         "../jdk8/hotspot/src/os/linux/vm",
         "../jdk8/hotspot/src/cpu/x86/vm",
         "../jdk8/hotspot/src/share/vm/prims",
-        "../jdk8/hotspot/src/share/vm/precompiled",
-        "generated/"
+        "../jdk8/hotspot/src/share/vm/precompiled"
     ],
     "Preprocessing_includes" : [
         "macros_headers/jdk8/hotspot/src/share/vm",
