@@ -6,6 +6,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from collections import deque
+from pprint import pprint
 
 TARGETS_JSON_FILE = "target_files.json"
 FORMATS = (".cpp", ".c", ".h", ".hpp")
@@ -32,6 +33,7 @@ class DependencyNode:
         self.required_functions = {}    # name -> {name, start_line, end_line}
                                         # Dictionary is needed to keep uniqueness of function entities
         self.root = False
+        self.header = None
 
         # Extract structure
         self.extract_functions(preprocessing_includes)
@@ -133,7 +135,7 @@ class DependencyNode:
         
     def find_used_functions(self):
             
-
+        # TODO : ADD GLOBAL VARIABLES TOO
         # Go through dependencies and make dictionary of them
         keywords_table = {}
         for dep in self.dependencies:
@@ -149,10 +151,18 @@ class DependencyNode:
             for func in dep.structure["function"]:
                 keywords_table[func["name"]] = (dep, func)
         
+        file_functions = {}
+        # Include functions from this file
+        for func in self.structure["function"]:
+            file_functions[func["name"]] = (self, func)
+
         # Find subset of included keywords
         appeared_keywords = set()
-        pattern = "|".join(keywords_table.keys())   # regex pattern
+        pattern = "|".join(keywords_table.keys())   # regex pattern to find keywords from dependencies
         print("DEBUG : Patter applied '{}'".format(pattern))
+
+        local_pattern = "|".join(file_functions.keys()) # Pattern to find local file functions
+
 
         # if not self.required_functions:
         if self.root:   # If it is a root node, go through the whole file
@@ -161,34 +171,55 @@ class DependencyNode:
                     [appeared_keywords.add(key) for key in re.findall(pattern, content)]
         else:
             # Create list of needed lines
-            target_lines = []
+            # target_lines = []
+            new_target_lines = []   # For the functions declared in this file
+
             for func in self.required_functions.values():
                 # functions having no body_start or body_end assumed to be prototypes
                 if not func["start_line"] or not func["end_line"]:
                     continue
 
-                target_lines.append((func["start_line"], func["end_line"]))
-            target_lines = sorted(target_lines, key=lambda x : x[0])
+                new_target_lines.append((func["start_line"], func["end_line"]))
+            
+
+            used_local_functions = set(self.required_functions.keys())
 
             # re.findall if needed line is reached
             with open(self.file_path) as f:
-                current_range_idx = 0
-                for str_idx, content in enumerate(f):
-                    if current_range_idx == len(target_lines):
-                        break   # No more ranges left
-                    current_range = target_lines[current_range_idx]
-                    # Debug TODO : REMOVE
-                    if isinstance(current_range[0], str):
-                        print("DEBUG : str found instead of int '{}'".format(current_range[0]))
-                    if isinstance(current_range[1], str):
-                        print("DEBUG : str found instead of int '{}'".format(current_range[1]))
+                while new_target_lines: # While we have something new to add
+                    target_lines = sorted(new_target_lines, key=lambda x : x[0])
+                    current_range_idx = 0
 
-                    # Append result of re.findall if it is body of needed element
-                    if (current_range[0] - 1 <= str_idx and str_idx <= current_range[1] - 1) \
-                        or (current_range[1] == -1 and current_range[0] - 1 == str_idx):
-                        [appeared_keywords.add(key) for key in re.findall(pattern, content)]
-                    if str_idx > current_range[1] - 1:   # Current range is ended
-                        current_range_idx += 1
+                    new_target_lines.clear()
+
+                    for str_idx, content in enumerate(f):
+                        if current_range_idx == len(target_lines):
+                            break   # No more ranges left
+                        current_range = target_lines[current_range_idx]
+                        # Debug TODO : REMOVE
+                        if isinstance(current_range[0], str):
+                            print("DEBUG : str found instead of int '{}'".format(current_range[0]))
+                        if isinstance(current_range[1], str):
+                            print("DEBUG : str found instead of int '{}'".format(current_range[1]))
+
+                        # Append result of re.findall if it is body of needed element
+                        if (current_range[0] - 1 <= str_idx and str_idx <= current_range[1] - 1) \
+                            or (current_range[1] == -1 and current_range[0] - 1 == str_idx):
+                            # Add found keywords
+                            [appeared_keywords.add(key) for key in re.findall(pattern, content)]
+                            # Add new functions ranges for the next iteration
+                            for local_func_name in re.findall(local_pattern, content):
+                                if local_func_name in used_local_functions:
+                                    continue
+                                used_local_functions.add(local_func_name)
+                                # new_target_lines.append(file_functions[local_func_name][1])
+                                local_func = file_functions[local_func_name][1]
+                                if not local_func["start_line"] or not local_func["end_line"]:
+                                    continue
+                                new_target_lines.append((local_func["start_line"], local_func["end_line"]))
+
+                        if str_idx > current_range[1] - 1:   # Current range is ended
+                            current_range_idx += 1
 
 
         # Add required functions to corresponding nodes
@@ -302,7 +333,7 @@ class Analyzer:
 
     def find_includes(self, dep_node):
         dependency_list = []
-        with open(dep_node.file_path) as f:
+        with open(dep_node.file_path) as f: # Dependencies of implementation if it exists
             for str_idx, content in enumerate(f):
                 # Seems that this pattern finds only platform independent includes (probably some programming convention
                 # is used by OpenJDK developers)
@@ -315,6 +346,21 @@ class Analyzer:
                     if len(new_include) > 1:
                         print("WARNING : More than one matches of include per string")
                     dependency_list.append(new_include[0][1:-1])
+
+        # Dependencies found in the header
+        if dep_node.header:
+            with open(dep_node.header) as f: # Dependencies of implementation if it exists
+                for str_idx, content in enumerate(f):
+                    new_include = re.findall(r"#include (\".*\"|<.*>)", content)
+                    if new_include:
+                        # Cutting brackets
+                        if len(new_include) > 1:
+                            print("WARNING : More than one matches of include per string")
+                        if not new_include[0][1:-1] in dependency_list:
+                            dependency_list.append(new_include[0][1:-1])
+                        else:
+                            print("WARNING : Header and implementation have duplicating includes '{}'".format(dep_node.name))
+
         return dependency_list
 
     def find_header_implementation(self, filename):
@@ -381,6 +427,28 @@ class Analyzer:
             for f_name in dep.required_functions.keys():
                 print("    {},".format(f_name))
 
+    def print_debug_structures(self):
+        processing_queue = deque()
+        for node in self.root_nodes:
+            processing_queue.append(node)
+        
+        processed_names = set(self.root_nodes)
+
+        while processing_queue:
+            current_node = processing_queue.popleft()
+            print("----------------------------------------")
+            print("Node name={}, path={}".format(current_node.name, current_node.file_path))
+            print("\n")
+            # pprint(current_node.structure)
+            print("\nREQUIRED FUNCTIONS")
+            print(current_node.required_functions)
+            print("----------------------------------------")
+            for dep in current_node.dependencies:
+                if dep.name in processed_names:
+                    continue
+                processing_queue.append(dep)
+                processed_names.add(dep.name)
+
     def resolve(self):
         # Loading starting files
         for f in self.starting_files:
@@ -418,9 +486,11 @@ class Analyzer:
                             i_path = self.find_header_implementation(d_path)
                             if i_path:
                                 d_node = DependencyNode(i_path, d_name, current_file, self.preprocessing_includes)
+                                d_node.header = d_path
                             else:
                                 d_node = DependencyNode(d_path, d_name, current_file, self.preprocessing_includes)
                             self.processing_stack.append(d_node)
+                            # self.known_dependencies.append(d_node)
                         else:
                             d_node = DependencyNode(d_path, d_name, current_file, self.preprocessing_includes)
                             self.edge_dependencies.append(d_node)
@@ -499,6 +569,8 @@ class Analyzer:
         self.print_edge_deps()
 
         self.print_edge_functions_report()
+
+        self.print_debug_structures()
 
         
             
