@@ -146,20 +146,30 @@ class DependencyNode:
             if not dep.file_path:
                 print("WARNING : file '{}' not found to find usages".format(dep.name))
                 continue
-            print("DEBUG : path='{}', structure='{}'".format(dep.file_path, str(dep.structure)))
-            print("DEBUG : structure[function] = {}".format(dep.structure["function"]))
+            # print("DEBUG : dep '{}'".format(dep.name))
+            # print("DEBUG : path='{}'".format(dep.file_path))
+            # print("DEBUG : structure[function] = {}".format(dep.structure["function"]))
             for func in dep.structure["function"]:
                 keywords_table[func["name"]] = (dep, func)
+            for var in dep.structure["variable"]:
+                keywords_table[func["name"]] = (dep, var)
         
+        print("DEBUG : Processing functions at '{}', path='{}', required functions : {}".format(self.name, self.file_path, str(self.required_functions.keys())))
+
         file_functions = {}
         # Include functions from this file
         for func in self.structure["function"]:
             file_functions[func["name"]] = (self, func)
+        for var in self.structure["variable"]:
+            file_functions[func["name"]] = (self, var)
 
         # Find subset of included keywords
         appeared_keywords = set()
         pattern = "|".join(keywords_table.keys())   # regex pattern to find keywords from dependencies
-        print("DEBUG : Patter applied '{}'".format(pattern))
+        # print("DEBUG : Pattern applied '{}'".format(pattern))
+        if not pattern:
+            print("WARNING : No keywords for '{}', path '{}'".format(self.name, self.file_path))
+            return []
 
         local_pattern = "|".join(file_functions.keys()) # Pattern to find local file functions
 
@@ -192,6 +202,10 @@ class DependencyNode:
 
                     new_target_lines.clear()
 
+                    # DEBUG TODO : REMOVE
+                    if self.name == "jvm.h":
+                        print(target_lines)
+
                     for str_idx, content in enumerate(f):
                         if current_range_idx == len(target_lines):
                             break   # No more ranges left
@@ -205,15 +219,20 @@ class DependencyNode:
                         # Append result of re.findall if it is body of needed element
                         if (current_range[0] - 1 <= str_idx and str_idx <= current_range[1] - 1) \
                             or (current_range[1] == -1 and current_range[0] - 1 == str_idx):
+                            # print("DEBUG : IT WORKS!")
                             # Add found keywords
-                            [appeared_keywords.add(key) for key in re.findall(pattern, content)]
+                            # [appeared_keywords.add(key) for key in re.findall(pattern, content)]
+                            for key in re.findall(pattern, content):
+                                appeared_keywords.add(key)
                             # Add new functions ranges for the next iteration
                             for local_func_name in re.findall(local_pattern, content):
+                                # print("DEBUG : IT WORKS AND FIND PATTERNS!")
                                 if local_func_name in used_local_functions:
                                     continue
                                 used_local_functions.add(local_func_name)
                                 # new_target_lines.append(file_functions[local_func_name][1])
                                 local_func = file_functions[local_func_name][1]
+                                self.required_functions[local_func_name] = local_func
                                 if not local_func["start_line"] or not local_func["end_line"]:
                                     continue
                                 new_target_lines.append((local_func["start_line"], local_func["end_line"]))
@@ -223,8 +242,9 @@ class DependencyNode:
 
 
         # Add required functions to corresponding nodes
+        print("DEBUG : keys found in '{}'".format(self.file_path))
+        updated_nodes = []
         for key in appeared_keywords:
-            print("DEBUG : found key: '{}'".format(key))
             if not key in keywords_table.keys():
                 print("WARNING : Unknown key was found ({})".format(key))
                 continue
@@ -232,7 +252,13 @@ class DependencyNode:
             keyword_function = keywords_table[key][1]
             # if key in keyword_node.structure["function"]:
             # keyword_node.required_functions.add(keyword_function)
-            keyword_node.required_functions[key] = keyword_function
+            if not key in keyword_node.required_functions.keys():
+                print("DEBUG : found key: '{}' from '{}'".format(key, keyword_node.name))
+                keyword_node.required_functions[key] = keyword_function
+                if not self._find_node(updated_nodes, keyword_node):
+                    updated_nodes.append(keyword_node)
+        
+        return updated_nodes
 
 
 class Analyzer:
@@ -439,10 +465,10 @@ class Analyzer:
             print("----------------------------------------")
             print("Node name={}, path={}".format(current_node.name, current_node.file_path))
             print("\n")
-            # pprint(current_node.structure)
+            pprint(current_node.structure)
             print("\nREQUIRED FUNCTIONS")
             print(current_node.required_functions)
-            print("----------------------------------------")
+            # print("----------------------------------------")
             for dep in current_node.dependencies:
                 if dep.name in processed_names:
                     continue
@@ -464,9 +490,9 @@ class Analyzer:
         while self.processing_stack:
             current_file = self.processing_stack.pop()
             # if current_file in self.known_dependencies:
-            if self.is_known_node(current_file):
-                continue
-            self.known_dependencies.append(current_file)
+            # if self.is_known_node(current_file):
+            #     continue
+            # self.known_dependencies.append(current_file)
             deps = self.find_includes(current_file)
             for d_name in deps:
                 # Process new nodes
@@ -490,7 +516,7 @@ class Analyzer:
                             else:
                                 d_node = DependencyNode(d_path, d_name, current_file, self.preprocessing_includes)
                             self.processing_stack.append(d_node)
-                            # self.known_dependencies.append(d_node)
+                            self.known_dependencies.append(d_node)
                         else:
                             d_node = DependencyNode(d_path, d_name, current_file, self.preprocessing_includes)
                             self.edge_dependencies.append(d_node)
@@ -550,15 +576,12 @@ class Analyzer:
             current_node = code_processing_queue.popleft()
             if current_node.name in not_found_files:
                 continue
-            current_node.find_used_functions()
-            for dep in current_node.dependencies:
-                dep_parents[dep.file_path] -= 1
-                if dep_parents[dep.file_path] == 0:
-                    if not added_to_queue[dep.file_path]:
-                        code_processing_queue.append(dep)
-                        added_to_queue[dep.file_path] = True
-                    else:
-                        print("WARNING : Tried to add to the queue after the last parent '{}'".format(dep.file_path))
+            print("DEBUG : Code processing queue - current node : '{}'".format(current_node.name))
+            updated_deps = current_node.find_used_functions()
+            # for dep in current_node.dependencies:
+            for dep in updated_deps:
+                code_processing_queue.append(dep)
+                added_to_queue[dep.file_path] = True
         
         # Check if any file left unprocessed
         for file_path, parents_count in dep_parents.items():
@@ -566,11 +589,11 @@ class Analyzer:
                 print("WARNING : '{}' left unprocessed".format(file_path))
         
         # Output needed results
-        self.print_edge_deps()
+        # self.print_edge_deps()
 
-        self.print_edge_functions_report()
+        # self.print_edge_functions_report()
 
-        self.print_debug_structures()
+        # self.print_debug_structures()
 
         
             
