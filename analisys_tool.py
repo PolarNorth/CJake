@@ -20,6 +20,10 @@ PROCESS_DIRS = True
 PRINT_ALL = False
 USAGE_VIEW = False
 
+# Processing options
+
+ONLY_FUNCTIONS = True
+
 class DependencyNode:
     def __init__(self, file_path, name, parent, preprocessing_includes):
         self.file_path = file_path
@@ -86,6 +90,15 @@ class DependencyNode:
                 doxy_process = subprocess.Popen(doxy_command, cwd=tempdir, stdout=subprocess.DEVNULL)
                 doxy_process.wait()
 
+                # Compiling results in one XML file using XSLT
+
+                # xsltproc -o output.xml combine.xslt index.xml
+                # xslt_output_file_path = os.path.join(tempdir, "xml", "xslt_output.xml")
+                # with open(xslt_output_file_path, "w+") as xslt_output_file:
+                xslt_command = ["xsltproc", "-o", "xslt_output.xml", "combine.xslt", "index.xml"]
+                xslt_process = subprocess.Popen(xslt_command, cwd=os.path.join(tempdir, "xml"), stdout=subprocess.DEVNULL)
+                xslt_process.wait()
+
                 # Extract information from XML
 
                 file_structure = {
@@ -95,40 +108,47 @@ class DependencyNode:
                     "typedef":[]
                 }
 
-                doxy_xml_path = os.path.join(tempdir, "xml", "{}_8{}.{}".format("prep", extension[1][1:], "xml"))
+                # doxy_xml_path = os.path.join(tempdir, "xml", "{}_8{}.{}".format("prep", extension[1][1:], "xml"))
+                doxy_xml_path = os.path.join(tempdir, "xml", "xslt_output.xml")
                 with open(doxy_xml_path) as doxy_xml:
                     tree = ET.parse(doxy_xml)
                     root = tree.getroot()
-                    file_info = root[0]
-                    # print(file_info.tag)
-                    # print(file_info.text)
-                    for section in file_info:
-                        if section.tag == "innerclass":
-                            file_structure["class"].append(section.text)
-                        elif section.tag == "sectiondef":
-                            for member in section:
-                                # Convert line numbers to int of not None 
-                                start_line = member.find("location").get("bodystart")
-                                if start_line:
-                                    start_line = int(start_line)
+                    for compound in root:
+                        # Add new name if it is not known
+                        if not compound.get("kind") == "file" and not compound.find("compoundname").text == "std":
+                            if not compound.get("kind") in file_structure.keys():
+                                print("DEBUG : New compound kind '{}'".format(compound.get("kind")))
+                                file_structure[compound.get("kind")] = []
+                            file_structure[compound.get("kind")].append(compound.find("compoundname").text)
 
-                                end_line = member.find("location").get("bodyend")
-                                if end_line:
-                                    end_line = int(end_line)
+                        for section in compound:
+                            if section.tag == "innerclass":
+                                file_structure["class"].append(section.text)
+                            elif section.tag == "sectiondef":
+                                for member in section:
+                                    # Convert line numbers to int of not None 
+                                    start_line = member.find("location").get("bodystart")
+                                    if start_line:
+                                        start_line = int(start_line)
 
-                                struct = {
-                                    "name" : member.find("name").text,
-                                    "start_line" : start_line,
-                                    "end_line" : end_line,
-                                }
-                                if not member.get("kind") in file_structure.keys():
-                                    print("WARNING : New type {} appeared in the file structure".format(member.find("name").text))
-                                    file_structure[member.get("kind")] = [struct]
-                                else:
-                                    # file_structure[member.get("kind")].append(member.find("name").text)
-                                    file_structure[member.get("kind")].append(struct)
-                        # print("<{}> {} {}".format(section.tag, section.get("kind"), section.find("name")))
-                    # print(file_structure)
+                                    end_line = member.find("location").get("bodyend")
+                                    if end_line:
+                                        end_line = int(end_line)
+
+                                    struct = {
+                                        "name" : member.find("name").text,
+                                        "start_line" : start_line,
+                                        "end_line" : end_line,
+                                    }
+                                    if not member.get("kind") in file_structure.keys():
+                                        print("WARNING : New type {} appeared in the file structure".format(member.find("name").text))
+                                        file_structure[member.get("kind")] = [struct]
+                                    else:
+                                        # file_structure[member.get("kind")].append(member.find("name").text)
+                                        file_structure[member.get("kind")].append(struct)
+                            # print("<{}> {} {}".format(section.tag, section.get("kind"), section.find("name")))
+                        # print(file_structure)
+
                     self.structure = file_structure
 
             # os.system("gcc {} > {}/prep.{}")
@@ -426,7 +446,8 @@ class Analyzer:
 
 
     def print_edge_deps(self):
-        filtered_deps = sorted(self.edge_dependencies, key=lambda x: x.name)
+        # filtered_deps = sorted(self.edge_dependencies, key=lambda x: x.name)
+        filtered_deps = sorted(self.edge_dependencies, key=lambda x: len(x.parents))
         if USAGE_VIEW: # Print usage of dependencies by searched files
             files = {}
             for d in filtered_deps:
@@ -448,10 +469,16 @@ class Analyzer:
     
     def print_edge_functions_report(self):
         print("#################### Functions report ####################")
+        used_modules_count = 0
+        entities_count = 0
         for dep in self.edge_dependencies:
             print("Module '{}', filepath '{}'".format(dep.name, dep.file_path))
+            if dep.required_functions.keys():
+                used_modules_count += 1
             for f_name in dep.required_functions.keys():
                 print("    {},".format(f_name))
+                entities_count += 1
+        print("\n{}/{} modules used, {} entities required".format(used_modules_count, len(self.edge_dependencies), entities_count))
 
     def print_debug_structures(self):
         processing_queue = deque()
@@ -584,14 +611,14 @@ class Analyzer:
                 added_to_queue[dep.file_path] = True
         
         # Check if any file left unprocessed
-        for file_path, parents_count in dep_parents.items():
-            if parents_count != 0:
-                print("WARNING : '{}' left unprocessed".format(file_path))
+        # for file_path, parents_count in dep_parents.items():
+        #     if parents_count != 0:
+        #         print("WARNING : '{}' left unprocessed".format(file_path))
         
         # Output needed results
-        # self.print_edge_deps()
+        self.print_edge_deps()
 
-        # self.print_edge_functions_report()
+        self.print_edge_functions_report()
 
         # self.print_debug_structures()
 
