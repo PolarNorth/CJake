@@ -22,7 +22,7 @@ USAGE_VIEW = False
 
 # Processing options
 
-ONLY_FUNCTIONS = True
+ONLY_C_STYLE = False
 
 class DependencyNode:
     def __init__(self, file_path, name, parent, preprocessing_includes):
@@ -119,11 +119,21 @@ class DependencyNode:
                             if not compound.get("kind") in file_structure.keys():
                                 print("DEBUG : New compound kind '{}'".format(compound.get("kind")))
                                 file_structure[compound.get("kind")] = []
-                            file_structure[compound.get("kind")].append(compound.find("compoundname").text)
+                            # file_structure[compound.get("kind")].append(compound.find("compoundname").text)
+                            file_structure[compound.get("kind")].append({
+                                "name" : compound.find("compoundname").text,
+                                "start_line" : None,
+                                "end_line" : None,
+                            })
 
                         for section in compound:
                             if section.tag == "innerclass":
-                                file_structure["class"].append(section.text)
+                                # file_structure["class"].append(section.text)
+                                file_structure["class"].append({
+                                    "name" : section.text,
+                                    "start_line" : None,
+                                    "end_line" : None,
+                                })
                             elif section.tag == "sectiondef":
                                 for member in section:
                                     # Convert line numbers to int of not None 
@@ -169,10 +179,26 @@ class DependencyNode:
             # print("DEBUG : dep '{}'".format(dep.name))
             # print("DEBUG : path='{}'".format(dep.file_path))
             # print("DEBUG : structure[function] = {}".format(dep.structure["function"]))
-            for func in dep.structure["function"]:
-                keywords_table[func["name"]] = (dep, func)
-            for var in dep.structure["variable"]:
-                keywords_table[func["name"]] = (dep, var)
+            if ONLY_C_STYLE:
+                for func in dep.structure["function"]:
+                    if func["name"] in keywords_table.keys():
+                        print("WARNING : duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
+                            func["name"], self.name, keywords_table[func["name"]][0].name, dep.name))
+                    keywords_table[func["name"]] = (dep, func)
+                for var in dep.structure["variable"]:
+                    if func["name"] in keywords_table.keys():
+                        print("WARNING : duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
+                            func["name"], self.name, keywords_table[func["name"]][0].name, dep.name))
+                    keywords_table[func["name"]] = (dep, var)
+            else:
+                for key in dep.structure.keys():
+                    print(dep.structure[key])
+                    for func in dep.structure[key]:
+                        if func["name"] in keywords_table.keys():
+                            print("WARNING : duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
+                                func["name"], self.name, keywords_table[func["name"]][0].name, dep.name))
+                        keywords_table[func["name"]] = (dep, func)
+                
         
         print("DEBUG : Processing functions at '{}', path='{}', required functions : {}".format(self.name, self.file_path, str(self.required_functions.keys())))
 
@@ -185,13 +211,13 @@ class DependencyNode:
 
         # Find subset of included keywords
         appeared_keywords = set()
-        pattern = "|".join(keywords_table.keys())   # regex pattern to find keywords from dependencies
+        pattern = "\\b" + "\\b|\\b".join(keywords_table.keys()) + "\\b"  # regex pattern to find keywords from dependencies
         # print("DEBUG : Pattern applied '{}'".format(pattern))
         if not pattern:
             print("WARNING : No keywords for '{}', path '{}'".format(self.name, self.file_path))
             return []
 
-        local_pattern = "|".join(file_functions.keys()) # Pattern to find local file functions
+        local_pattern = "\\b" + "\\b|\\b".join(file_functions.keys()) + "\\b" # Pattern to find local file functions
 
 
         # if not self.required_functions:
