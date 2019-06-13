@@ -24,7 +24,8 @@ USAGE_VIEW = False
 
 # Processing options
 
-ONLY_C_STYLE = False
+ONLY_C_STYLE = True
+PROCESS_ALTERNATIVES = True
 
 # Logging
 
@@ -188,24 +189,23 @@ class DependencyNode:
             # logging.debug("path='{}'".format(dep.file_path))
             # logging.debug("structure[function] = {}".format(dep.structure["function"]))
             if ONLY_C_STYLE:
-                for func in dep.structure["function"]:
+                for func in dep.structure["function"] + dep.structure["variable"]:
                     if func["name"] in keywords_table.keys():
                         logging.warning("duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
-                            func["name"], self.name, keywords_table[func["name"]][0].name, dep.name))
-                    keywords_table[func["name"]] = (dep, func)
-                for var in dep.structure["variable"]:
-                    if func["name"] in keywords_table.keys():
-                        logging.warning("duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
-                            func["name"], self.name, keywords_table[func["name"]][0].name, dep.name))
-                    keywords_table[func["name"]] = (dep, var)
+                            func["name"], self.name, dep.name))
+                        keywords_table[func["name"]].append((dep, func))
+                    else:
+                        keywords_table[func["name"]] = [(dep, func)]
             else:
                 for key in dep.structure.keys():
                     print(dep.structure[key])
                     for func in dep.structure[key]:
                         if func["name"] in keywords_table.keys():
-                            logging.warning("duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
-                                func["name"], self.name, keywords_table[func["name"]][0].name, dep.name))
-                        keywords_table[func["name"]] = (dep, func)
+                            logging.warning("duplicating keys '{}' at '{}'. New dependency '{}'".format(\
+                                func["name"], self.name, dep.name))
+                            keywords_table[func["name"]].append((dep, func))
+                        else:
+                            keywords_table[func["name"]] = [(dep, func)]
                 
         
         logging.debug("Processing functions at '{}', path='{}', required functions : {}".format(self.name, self.file_path, str(self.required_functions.keys())))
@@ -300,15 +300,14 @@ class DependencyNode:
             if not key in keywords_table.keys():
                 logging.warning("Unknown key was found ({})".format(key))
                 continue
-            keyword_node = keywords_table[key][0]
-            keyword_function = keywords_table[key][1]
-            # if key in keyword_node.structure["function"]:
-            # keyword_node.required_functions.add(keyword_function)
-            if not key in keyword_node.required_functions.keys():
-                logging.debug("found key: '{}' from '{}'".format(key, keyword_node.name))
-                keyword_node.required_functions[key] = keyword_function
-                if not self._find_node(updated_nodes, keyword_node):
-                    updated_nodes.append(keyword_node)
+            for keyword_node, keyword_function in keywords_table[key]:
+                # if key in keyword_node.structure["function"]:
+                # keyword_node.required_functions.add(keyword_function)
+                if not key in keyword_node.required_functions.keys():
+                    logging.debug("found key: '{}' from '{}'".format(key, keyword_node.name))
+                    keyword_node.required_functions[key] = keyword_function
+                    if not self._find_node(updated_nodes, keyword_node):
+                        updated_nodes.append(keyword_node)
         
         return updated_nodes
 
