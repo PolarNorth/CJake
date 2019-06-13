@@ -3,6 +3,8 @@ import json
 import re
 import tempfile
 import subprocess
+import logging
+import datetime
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from collections import deque
@@ -23,6 +25,12 @@ USAGE_VIEW = False
 # Processing options
 
 ONLY_C_STYLE = False
+
+# Logging
+
+LOG_TO_STDOUT = True
+LOG_NAME_FORMAT = "CJake log %H-%M-%S %d-%m-%Y.log"
+LOG_LEVEL = logging.DEBUG
 
 class DependencyNode:
     def __init__(self, file_path, name, parent, preprocessing_includes):
@@ -117,7 +125,7 @@ class DependencyNode:
                         # Add new name if it is not known
                         if not compound.get("kind") == "file" and not compound.find("compoundname").text == "std":
                             if not compound.get("kind") in file_structure.keys():
-                                print("DEBUG : New compound kind '{}'".format(compound.get("kind")))
+                                logging.debug("New compound kind '{}'".format(compound.get("kind")))
                                 file_structure[compound.get("kind")] = []
                             # file_structure[compound.get("kind")].append(compound.find("compoundname").text)
                             file_structure[compound.get("kind")].append({
@@ -171,23 +179,23 @@ class DependencyNode:
         for dep in self.dependencies:
             # for name in dep.values():
             if not dep:
-                print("WARNING : None is passed as dependency")
+                logging.warning("None is passed as dependency")
                 continue
             if not dep.file_path:
-                print("WARNING : file '{}' not found to find usages".format(dep.name))
+                logging.warning("file '{}' not found to find usages".format(dep.name))
                 continue
-            # print("DEBUG : dep '{}'".format(dep.name))
-            # print("DEBUG : path='{}'".format(dep.file_path))
-            # print("DEBUG : structure[function] = {}".format(dep.structure["function"]))
+            # logging.debug("dep '{}'".format(dep.name))
+            # logging.debug("path='{}'".format(dep.file_path))
+            # logging.debug("structure[function] = {}".format(dep.structure["function"]))
             if ONLY_C_STYLE:
                 for func in dep.structure["function"]:
                     if func["name"] in keywords_table.keys():
-                        print("WARNING : duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
+                        logging.warning("duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
                             func["name"], self.name, keywords_table[func["name"]][0].name, dep.name))
                     keywords_table[func["name"]] = (dep, func)
                 for var in dep.structure["variable"]:
                     if func["name"] in keywords_table.keys():
-                        print("WARNING : duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
+                        logging.warning("duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
                             func["name"], self.name, keywords_table[func["name"]][0].name, dep.name))
                     keywords_table[func["name"]] = (dep, var)
             else:
@@ -195,12 +203,12 @@ class DependencyNode:
                     print(dep.structure[key])
                     for func in dep.structure[key]:
                         if func["name"] in keywords_table.keys():
-                            print("WARNING : duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
+                            logging.warning("duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
                                 func["name"], self.name, keywords_table[func["name"]][0].name, dep.name))
                         keywords_table[func["name"]] = (dep, func)
                 
         
-        print("DEBUG : Processing functions at '{}', path='{}', required functions : {}".format(self.name, self.file_path, str(self.required_functions.keys())))
+        logging.debug("Processing functions at '{}', path='{}', required functions : {}".format(self.name, self.file_path, str(self.required_functions.keys())))
 
         file_functions = {}
         # Include functions from this file
@@ -212,9 +220,9 @@ class DependencyNode:
         # Find subset of included keywords
         appeared_keywords = set()
         pattern = "\\b" + "\\b|\\b".join(keywords_table.keys()) + "\\b"  # regex pattern to find keywords from dependencies
-        # print("DEBUG : Pattern applied '{}'".format(pattern))
+        logging.debug("Pattern applied '{}'".format(pattern))
         if not pattern:
-            print("WARNING : No keywords for '{}', path '{}'".format(self.name, self.file_path))
+            logging.warning("No keywords for '{}', path '{}'".format(self.name, self.file_path))
             return []
 
         local_pattern = "\\b" + "\\b|\\b".join(file_functions.keys()) + "\\b" # Pattern to find local file functions
@@ -258,21 +266,19 @@ class DependencyNode:
                         current_range = target_lines[current_range_idx]
                         # Debug TODO : REMOVE
                         if isinstance(current_range[0], str):
-                            print("DEBUG : str found instead of int '{}'".format(current_range[0]))
+                            logging.debug("str found instead of int '{}'".format(current_range[0]))
                         if isinstance(current_range[1], str):
-                            print("DEBUG : str found instead of int '{}'".format(current_range[1]))
+                            logging.debug("str found instead of int '{}'".format(current_range[1]))
 
                         # Append result of re.findall if it is body of needed element
                         if (current_range[0] - 1 <= str_idx and str_idx <= current_range[1] - 1) \
                             or (current_range[1] == -1 and current_range[0] - 1 == str_idx):
-                            # print("DEBUG : IT WORKS!")
                             # Add found keywords
                             # [appeared_keywords.add(key) for key in re.findall(pattern, content)]
                             for key in re.findall(pattern, content):
                                 appeared_keywords.add(key)
                             # Add new functions ranges for the next iteration
                             for local_func_name in re.findall(local_pattern, content):
-                                # print("DEBUG : IT WORKS AND FIND PATTERNS!")
                                 if local_func_name in used_local_functions:
                                     continue
                                 used_local_functions.add(local_func_name)
@@ -288,18 +294,18 @@ class DependencyNode:
 
 
         # Add required functions to corresponding nodes
-        print("DEBUG : keys found in '{}'".format(self.file_path))
+        logging.debug("keys found in '{}'".format(self.file_path))
         updated_nodes = []
         for key in appeared_keywords:
             if not key in keywords_table.keys():
-                print("WARNING : Unknown key was found ({})".format(key))
+                logging.warning("Unknown key was found ({})".format(key))
                 continue
             keyword_node = keywords_table[key][0]
             keyword_function = keywords_table[key][1]
             # if key in keyword_node.structure["function"]:
             # keyword_node.required_functions.add(keyword_function)
             if not key in keyword_node.required_functions.keys():
-                print("DEBUG : found key: '{}' from '{}'".format(key, keyword_node.name))
+                logging.debug("found key: '{}' from '{}'".format(key, keyword_node.name))
                 keyword_node.required_functions[key] = keyword_function
                 if not self._find_node(updated_nodes, keyword_node):
                     updated_nodes.append(keyword_node)
@@ -322,7 +328,7 @@ class Analyzer:
                     file_path = os.path.join(root,f)
                     # if file_path in files:
                     if f in filenames:
-                        print("WARNING : Duplicating files are found '{}'".format(f))
+                        logging.warning("Duplicating files are found '{}'".format(f))
                         # duplicating.append(f)
                         if f in duplicating.keys():
                             duplicating[f].append(file_path)
@@ -400,7 +406,7 @@ class Analyzer:
         for path in self.edge_dirs:
             if path.endswith(edge_dep_name):
                 return path
-        print("WARNING : Edge dependency '{}' filepath not found ".format(edge_dep_name))
+        logging.warning("Edge dependency '{}' filepath not found ".format(edge_dep_name))
         return None
 
     def find_includes(self, dep_node):
@@ -416,7 +422,7 @@ class Analyzer:
                 if new_include:
                     # Cutting brackets
                     if len(new_include) > 1:
-                        print("WARNING : More than one matches of include per string")
+                        logging.warning("More than one matches of include per string")
                     dependency_list.append(new_include[0][1:-1])
 
         # Dependencies found in the header
@@ -427,11 +433,11 @@ class Analyzer:
                     if new_include:
                         # Cutting brackets
                         if len(new_include) > 1:
-                            print("WARNING : More than one matches of include per string")
+                            logging.warning("More than one matches of include per string")
                         if not new_include[0][1:-1] in dependency_list:
                             dependency_list.append(new_include[0][1:-1])
                         else:
-                            print("WARNING : Header and implementation have duplicating includes '{}'".format(dep_node.name))
+                            logging.warning("Header and implementation have duplicating includes '{}'".format(dep_node.name))
 
         return dependency_list
 
@@ -459,7 +465,7 @@ class Analyzer:
         cpp_file_config = Path(cpp_file_path)
 
         if c_file_config.is_file() and cpp_file_config.is_file():
-            print("WARNING : .c and .cpp implementations")
+            logging.warning(".c and .cpp implementations")
 
         if c_file_config.is_file():
             return c_file_path
@@ -467,7 +473,7 @@ class Analyzer:
         if cpp_file_config.is_file():
             return cpp_file_path
 
-        print("WARNING : implementation is not found [{}]".format(filename))
+        logging.warning("implementation is not found [{}]".format(filename))
         return None
 
 
@@ -588,13 +594,13 @@ class Analyzer:
         #     if not node.structure:
         #         node.extract_functions(self.preprocessing_includes)
         #     else:
-        #         print("WARNING : duplicating file in known_dependencies '{}'".format(node.name))
+        #         logging.warning("duplicating file in known_dependencies '{}'".format(node.name))
         
         # for node in self.edge_dependencies:
         #     if not node.structure and not node.name in not_found_files:
         #         node.extract_functions(self.preprocessing_includes)
         #     else:
-        #         print("WARNING : duplicating file in edge_dependencies '{}'".format(node.name))
+        #         logging.warning("duplicating file in edge_dependencies '{}'".format(node.name))
         
         # Debug information to be displayed
 
@@ -629,7 +635,7 @@ class Analyzer:
             current_node = code_processing_queue.popleft()
             if current_node.name in not_found_files:
                 continue
-            print("DEBUG : Code processing queue - current node : '{}'".format(current_node.name))
+            logging.debug("Code processing queue - current node : '{}'".format(current_node.name))
             updated_deps = current_node.find_used_functions()
             # for dep in current_node.dependencies:
             for dep in updated_deps:
@@ -639,7 +645,7 @@ class Analyzer:
         # Check if any file left unprocessed
         # for file_path, parents_count in dep_parents.items():
         #     if parents_count != 0:
-        #         print("WARNING : '{}' left unprocessed".format(file_path))
+        #         logging.warning("'{}' left unprocessed".format(file_path))
         
         # Output needed results
         self.print_edge_deps()
@@ -657,6 +663,10 @@ class Analyzer:
 
 
 if __name__ == "__main__":
+
+    if not LOG_TO_STDOUT:
+        logging.basicConfig(filename=datetime.datetime.today().strftime(LOG_NAME_FORMAT), \
+                            level=LOG_LEVEL)
 
     tool = Analyzer(TARGETS_JSON_FILE)
     tool.resolve()
