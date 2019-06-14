@@ -25,11 +25,11 @@ USAGE_VIEW = False
 # Processing options
 
 ONLY_C_STYLE = True
-PROCESS_ALTERNATIVES = True
+PROCESS_ALTERNATIVES = False
 
 # Logging
 
-LOG_TO_STDOUT = True
+LOG_TO_STDOUT = False
 LOG_NAME_FORMAT = "CJake log %H-%M-%S %d-%m-%Y.log"
 LOG_LEVEL = logging.DEBUG
 
@@ -123,7 +123,7 @@ class DependencyNode:
                     tree = ET.parse(doxy_xml)
                     root = tree.getroot()
                     for compound in root:
-                        # Add new name if it is not known
+                        # Add new name of class if it is not known
                         if not compound.get("kind") == "file" and not compound.find("compoundname").text == "std":
                             if not compound.get("kind") in file_structure.keys():
                                 logging.debug("New compound kind '{}'".format(compound.get("kind")))
@@ -160,7 +160,7 @@ class DependencyNode:
                                         "end_line" : end_line,
                                     }
                                     if not member.get("kind") in file_structure.keys():
-                                        print("WARNING : New type {} appeared in the file structure".format(member.find("name").text))
+                                        logging.warning("New type {} appeared in the file structure".format(member.find("name").text))
                                         file_structure[member.get("kind")] = [struct]
                                     else:
                                         # file_structure[member.get("kind")].append(member.find("name").text)
@@ -177,6 +177,8 @@ class DependencyNode:
         # TODO : ADD GLOBAL VARIABLES TOO
         # Go through dependencies and make dictionary of them
         keywords_table = {}
+
+        # Process all structures in dependencies
         for dep in self.dependencies:
             # for name in dep.values():
             if not dep:
@@ -188,34 +190,42 @@ class DependencyNode:
             # logging.debug("dep '{}'".format(dep.name))
             # logging.debug("path='{}'".format(dep.file_path))
             # logging.debug("structure[function] = {}".format(dep.structure["function"]))
-            if ONLY_C_STYLE:
-                for func in dep.structure["function"] + dep.structure["variable"]:
-                    if func["name"] in keywords_table.keys():
-                        logging.warning("duplicating keys '{}' at '{}'. Dependency '{}' replaced by '{}'".format(\
-                            func["name"], self.name, dep.name))
-                        keywords_table[func["name"]].append((dep, func))
-                    else:
-                        keywords_table[func["name"]] = [(dep, func)]
-            else:
+
+            struct_keywords = []    # Contains all constructions in dependencies
+            if ONLY_C_STYLE:    # Need only functions and variables
+                struct_keywords = dep.structure["function"] + dep.structure["variable"]
+            else:   # Include everything
                 for key in dep.structure.keys():
-                    print(dep.structure[key])
-                    for func in dep.structure[key]:
-                        if func["name"] in keywords_table.keys():
-                            logging.warning("duplicating keys '{}' at '{}'. New dependency '{}'".format(\
-                                func["name"], self.name, dep.name))
-                            keywords_table[func["name"]].append((dep, func))
-                        else:
-                            keywords_table[func["name"]] = [(dep, func)]
-                
+                    struct_keywords.extend(dep.structure[key])
+
+            for func in struct_keywords:
+                if func["name"] in keywords_table.keys():
+                    logging.warning("duplicating keys '{}' at '{}'. New dependency '{}'".format(\
+                        func["name"], self.name, dep.name))
+                    if PROCESS_ALTERNATIVES:
+                        keywords_table[func["name"]].append((dep, func))
+                else:
+                    keywords_table[func["name"]] = [(dep, func)]
+
+        # Process all structures in the current file
+        struct_local = []   # Contains all constructions in this file
+        file_functions = {}
+
+        if ONLY_C_STYLE:    # Need only functions and variables
+            struct_local = self.structure["function"] + self.structure["variable"]
+        else:   # Include everything
+            for key in self.structure.keys():
+                struct_local.extend(self.structure[key])
+            
+        for func in struct_local:
+            if func["name"] in file_functions.keys():
+                if PROCESS_ALTERNATIVES:
+                    file_functions[func["name"]].append((self, func))
+            else:
+                file_functions[func["name"]] = [(self, func)]
         
         logging.debug("Processing functions at '{}', path='{}', required functions : {}".format(self.name, self.file_path, str(self.required_functions.keys())))
-
-        file_functions = {}
-        # Include functions from this file
-        for func in self.structure["function"]:
-            file_functions[func["name"]] = (self, func)
-        for var in self.structure["variable"]:
-            file_functions[func["name"]] = (self, var)
+        logging.debug("is subset : {}".format(str(set(file_functions.keys()).issubset(keywords_table.keys()))))
 
         # Find subset of included keywords
         appeared_keywords = set()
@@ -228,14 +238,13 @@ class DependencyNode:
         local_pattern = "\\b" + "\\b|\\b".join(file_functions.keys()) + "\\b" # Pattern to find local file functions
 
 
-        # if not self.required_functions:
         if self.root:   # If it is a root node, go through the whole file
             with open(self.file_path) as f:
                 for str_idx, content in enumerate(f):
                     [appeared_keywords.add(key) for key in re.findall(pattern, content)]
         else:
             # Create list of needed lines
-            # target_lines = []
+
             new_target_lines = []   # For the functions declared in this file
 
             for func in self.required_functions.values():
@@ -256,15 +265,10 @@ class DependencyNode:
 
                     new_target_lines.clear()
 
-                    # DEBUG TODO : REMOVE
-                    if self.name == "jvm.h":
-                        print(target_lines)
-
                     for str_idx, content in enumerate(f):
                         if current_range_idx == len(target_lines):
                             break   # No more ranges left
                         current_range = target_lines[current_range_idx]
-                        # Debug TODO : REMOVE
                         if isinstance(current_range[0], str):
                             logging.debug("str found instead of int '{}'".format(current_range[0]))
                         if isinstance(current_range[1], str):
@@ -283,11 +287,12 @@ class DependencyNode:
                                     continue
                                 used_local_functions.add(local_func_name)
                                 # new_target_lines.append(file_functions[local_func_name][1])
-                                local_func = file_functions[local_func_name][1]
-                                self.required_functions[local_func_name] = local_func
-                                if not local_func["start_line"] or not local_func["end_line"]:
-                                    continue
-                                new_target_lines.append((local_func["start_line"], local_func["end_line"]))
+                                for self_dep, local_func in file_functions[local_func_name]:
+                                    # local_func = file_functions[local_func_name][1]
+                                    self.required_functions[local_func_name] = local_func
+                                    if not local_func["start_line"] or not local_func["end_line"]:
+                                        continue
+                                    new_target_lines.append((local_func["start_line"], local_func["end_line"]))
 
                         if str_idx > current_range[1] - 1:   # Current range is ended
                             current_range_idx += 1
@@ -502,11 +507,12 @@ class Analyzer:
         print("#################### Functions report ####################")
         used_modules_count = 0
         entities_count = 0
-        for dep in self.edge_dependencies:
+        sorted_edge_dependencies = sorted(self.edge_dependencies, key=lambda x : x.name)
+        for dep in sorted_edge_dependencies:
             print("Module '{}', filepath '{}'".format(dep.name, dep.file_path))
             if dep.required_functions.keys():
                 used_modules_count += 1
-            for f_name in dep.required_functions.keys():
+            for f_name in sorted(dep.required_functions.keys()):
                 print("    {},".format(f_name))
                 entities_count += 1
         print("\n{}/{} modules used, {} entities required".format(used_modules_count, len(self.edge_dependencies), entities_count))
@@ -603,8 +609,8 @@ class Analyzer:
         
         # Debug information to be displayed
 
-        print("jvm.h in known [{}], in edge [{}]".format(str(any([d.name == "jvm.h" for d in self.known_dependencies])),\
-                                                         str(any([d.name == "jvm.h" for d in self.edge_dependencies]))))
+        # print("jvm.h in known [{}], in edge [{}]".format(str(any([d.name == "jvm.h" for d in self.known_dependencies])),\
+        #                                                  str(any([d.name == "jvm.h" for d in self.edge_dependencies]))))
 
         # End debug
 
