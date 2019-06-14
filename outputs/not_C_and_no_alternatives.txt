@@ -1,0 +1,886 @@
+'java_lang_Compiler.h' used by 1 : ['Compiler.c']
+'runtime/atomic.hpp' used by 1 : ['prims/jvmtiImpl.hpp']
+'runtime/serviceThread.hpp' used by 1 : ['prims/jvmtiImpl.hpp']
+'classfile/metadataOnStackMark.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'classfile/verifier.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'compiler/compileBroker.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'interpreter/oopMapCache.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'interpreter/rewriter.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'memory/metadataFactory.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'memory/metaspaceShared.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'oops/klassVtable.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'runtime/relocator.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'utilities/bitMap.inline.hpp' used by 1 : ['prims/jvmtiRedefineClasses.hpp']
+'interpreter/bytecodeStream.hpp' used by 1 : ['prims/methodComparator.hpp']
+'oops/constantPool.hpp' used by 1 : ['prims/methodComparator.hpp']
+'oops/instanceMirrorKlass.hpp' used by 1 : ['prims/jvmtiTagMap.hpp']
+'oops/oop.inline2.hpp' used by 1 : ['prims/jvmtiTagMap.hpp']
+'runtime/jniHandles.hpp' used by 1 : ['prims/jvmtiTagMap.hpp']
+'runtime/mutex.hpp' used by 1 : ['prims/jvmtiTagMap.hpp']
+'runtime/mutexLocker.hpp' used by 1 : ['prims/jvmtiTagMap.hpp']
+'runtime/reflectionUtils.hpp' used by 1 : ['prims/jvmtiTagMap.hpp']
+'gc_implementation/parallelScavenge/parallelScavengeHeap.hpp' used by 1 : ['prims/jvmtiTagMap.hpp']
+'memory/genCollectedHeap.hpp' used by 1 : ['prims/jvmtiTagMap.hpp']
+'memory/universe.hpp' used by 1 : ['prims/jvmtiTagMap.hpp']
+'code/nmethod.hpp' used by 1 : ['prims/jvmtiExport.hpp']
+'code/pcDesc.hpp' used by 1 : ['prims/jvmtiExport.hpp']
+'gc_implementation/parallelScavenge/psMarkSweep.hpp' used by 1 : ['prims/jvmtiExport.hpp']
+'memory/iterator.hpp' used by 1 : ['prims/jvmtiExport.hpp']
+'oops/oop.hpp' used by 1 : ['prims/jvmtiExport.hpp']
+'code/jvmticmlr.h' used by 1 : ['prims/jvmtiExport.hpp']
+'code/codeBlob.hpp' used by 1 : ['prims/jvmtiCodeBlobEvents.hpp']
+'java_lang_Runtime.h' used by 1 : ['Runtime.c']
+'java_lang_Thread.h' used by 1 : ['Thread.c']
+'java_lang_reflect_Array.h' used by 1 : ['Array.c']
+'java_lang_Package.h' used by 1 : ['Package.c']
+'java_lang_StrictMath.h' used by 1 : ['StrictMath.c']
+'machine/endian.h' used by 1 : ['fdlibm.h']
+'endian.h' used by 1 : ['fdlibm.h']
+'values.h' used by 1 : ['fdlibm.h']
+'limits.h' used by 1 : ['Object.c']
+'java_lang_Object.h' used by 1 : ['Object.c']
+'java_lang_SecurityManager.h' used by 1 : ['SecurityManager.c']
+'java_lang_Float.h' used by 1 : ['Float.c']
+'java_lang_reflect_Proxy.h' used by 1 : ['Proxy.c']
+'java_lang_reflect_Field.h' used by 1 : ['Field.c']
+'assert.h' used by 1 : ['ClassLoader.c']
+'java_lang_ClassLoader_NativeLibrary.h' used by 1 : ['ClassLoader.c']
+'unistd.h' used by 1 : ['k_standard.c']
+'java_lang_reflect_Executable.h' used by 1 : ['Executable.c']
+'java_lang_Class.h' used by 1 : ['Class.c']
+'java_lang_Throwable.h' used by 1 : ['Throwable.c']
+'java_lang_Double.h' used by 1 : ['Double.c']
+'tchar.h' used by 1 : ['java_props.h']
+'java_lang_String.h' used by 1 : ['String.c']
+'java_lang_System.h' used by 1 : ['System.c']
+'java_lang_Shutdown.h' used by 1 : ['Shutdown.c']
+'ci/ciReplay.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'classfile/altHashing.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'interpreter/linkResolver.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'gc_implementation/g1/g1SATBCardTableModRefBS.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'memory/gcLocker.inline.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'oops/instanceOop.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'oops/markOop.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'oops/typeArrayKlass.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'oops/typeArrayOop.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'runtime/compilationPolicy.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'runtime/fprofiler.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'services/runtimeService.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'gc_implementation/shared/gcTimer.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'gc_implementation/g1/heapRegionRemSet.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'utilities/quickSort.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'utilities/ostream.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'runtime/vmStructs.hpp' used by 2 : ['jni.h', 'prims/jni.h']
+'stdarg.h' used by 2 : ['jni.h', 'prims/jni.h']
+'memory/gcLocker.hpp' used by 2 : ['prims/jvmtiThreadState.hpp', 'prims/jvmtiRedefineClasses.hpp']
+'utilities/exceptions.hpp' used by 2 : ['prims/jvmtiImpl.hpp', 'prims/jvmtiUtil.hpp']
+'runtime/stackValueCollection.hpp' used by 2 : ['prims/jvmtiImpl.hpp', 'prims/jvmtiTrace.hpp']
+'code/codeCache.hpp' used by 2 : ['prims/jvmtiRedefineClasses.hpp', 'prims/jvmtiCodeBlobEvents.hpp']
+'runtime/biasedLocking.hpp' used by 2 : ['prims/jvmtiEnvBase.hpp', 'prims/jvmtiTagMap.hpp']
+'runtime/objectMonitor.inline.hpp' used by 2 : ['prims/jvmtiEnvBase.hpp', 'prims/jvmtiExport.hpp']
+'services/serviceUtil.hpp' used by 2 : ['prims/jvmtiTagMap.hpp', 'prims/jvmtiExport.hpp']
+'code/scopeDesc.hpp' used by 2 : ['prims/jvmtiExport.hpp', 'prims/jvmtiCodeBlobEvents.hpp']
+'oops/oopsHierarchy.hpp' used by 2 : ['prims/jvmtiExport.hpp', 'prims/privilegedStack.hpp']
+'classfile/javaAssertions.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'gc_interface/collectedHeap.inline.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'interpreter/bytecode.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'runtime/dtraceJSDT.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'runtime/init.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'runtime/perfData.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'services/management.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'services/threadService.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'utilities/copy.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'utilities/utf8.hpp' used by 2 : ['prims/jvm.h', 'jvm.h']
+'sys/stat.h' used by 2 : ['prims/jvm.h', 'jvm.h']
+'jvm_md.h' used by 2 : ['prims/jvm.h', 'jvm.h']
+'signal.h' used by 2 : ['Object.c', 'Throwable.c']
+'java_lang_ClassLoader.h' used by 2 : ['SecurityManager.c', 'ClassLoader.c']
+'jlong.h' used by 2 : ['ClassLoader.c', 'Double.c']
+'runtime/sharedRuntime.hpp' used by 3 : ['jni.h', 'prims/nativeLookup.hpp', 'prims/jni.h']
+'runtime/thread.inline.hpp' used by 3 : ['jni.h', 'prims/jvmtiImpl.hpp', 'prims/jni.h']
+'gc_interface/collectedHeap.hpp' used by 3 : ['jni.h', 'prims/jvmtiTagMap.hpp', 'prims/jni.h']
+'runtime/frame.hpp' used by 3 : ['prims/jvmtiEventController.hpp', 'prims/jvmtiEnvBase.hpp', 'prims/jvmtiExport.hpp']
+'runtime/vframe_hp.hpp' used by 3 : ['prims/jvmtiEventController.hpp', 'prims/jvmtiImpl.hpp', 'prims/jvmtiEnvBase.hpp']
+'runtime/deoptimization.hpp' used by 3 : ['prims/jvmtiImpl.hpp', 'prims/jvmtiRedefineClasses.hpp', 'prims/jvmtiEnvBase.hpp']
+'runtime/os.hpp' used by 3 : ['prims/jvmtiImpl.hpp', 'prims/jvm.h', 'jvm.h']
+'oops/fieldStreams.hpp' used by 3 : ['prims/jvmtiRedefineClasses.hpp', 'prims/jvm.h', 'jvm.h']
+'runtime/objectMonitor.hpp' used by 3 : ['prims/jvmtiEnvBase.hpp', 'prims/jvmtiExport.hpp', 'prims/jvmtiRawMonitor.hpp']
+'services/attachListener.hpp' used by 3 : ['prims/jvmtiExport.hpp', 'prims/jvm.h', 'jvm.h']
+'utilities/top.hpp' used by 3 : ['prims/jvm.h', 'prims/nativeLookup.hpp', 'jvm.h']
+'string.h' used by 3 : ['ClassLoader.c', 'Class.c', 'System.c']
+'runtime/fieldDescriptor.hpp' used by 4
+'runtime/java.hpp' used by 4
+'runtime/reflection.hpp' used by 4
+'trace/tracing.hpp' used by 4
+'utilities/defaultStream.hpp' used by 4
+'utilities/dtrace.hpp' used by 4
+'utilities/events.hpp' used by 4
+'utilities/histogram.hpp' used by 4
+'interpreter/interpreter.hpp' used by 4
+'runtime/vmThread.hpp' used by 4
+'utilities/globalDefinitions.hpp' used by 4
+'runtime/arguments.hpp' used by 4
+'stdlib.h' used by 4
+'classfile/classLoader.hpp' used by 5
+'classfile/javaClasses.hpp' used by 5
+'classfile/symbolTable.hpp' used by 5
+'oops/symbol.hpp' used by 5
+'stdio.h' used by 5
+'errno.h' used by 5
+'utilities/macros.hpp' used by 6
+'memory/allocation.inline.hpp' used by 6
+'memory/oopFactory.hpp' used by 6
+'memory/universe.inline.hpp' used by 6
+'runtime/jfieldIDWorkaround.hpp' used by 6
+'runtime/signature.hpp' used by 6
+'runtime/thread.hpp' used by 6
+'utilities/growableArray.hpp' used by 6
+'classfile/vmSymbols.hpp' used by 7
+'oops/method.hpp' used by 7
+'oops/objArrayOop.hpp' used by 7
+'oops/oop.inline.hpp' used by 7
+'oops/objArrayKlass.hpp' used by 8
+'runtime/javaCalls.hpp' used by 8
+'runtime/handles.hpp' used by 8
+'oops/instanceKlass.hpp' used by 9
+'memory/resourceArea.hpp' used by 9
+'runtime/vframe.hpp' used by 10
+'memory/allocation.hpp' used by 11
+'runtime/handles.inline.hpp' used by 11
+'runtime/interfaceSupport.hpp' used by 11
+'jni_util.h' used by 11
+'runtime/vm_operations.hpp' used by 12
+'classfile/systemDictionary.hpp' used by 13
+'precompiled.hpp' used by 23
+Overall edge files: 154
+#################### Functions report ####################
+Module 'assert.h', filepath 'None'
+Module 'ci/ciReplay.hpp', filepath '../jdk8/hotspot/src/share/vm/ci/ciReplay.hpp'
+    initialize,
+Module 'classfile/altHashing.hpp', filepath '../jdk8/hotspot/src/share/vm/classfile/altHashing.hpp'
+Module 'classfile/classLoader.hpp', filepath '../jdk8/hotspot/src/share/vm/classfile/classLoader.hpp'
+    ClassLoader,
+    PerfClassTraceTime,
+    compile_the_world_in,
+    initialize,
+    name,
+    next,
+    perf_app_classfile_bytes_read,
+    perf_define_appclass_selftime,
+    perf_define_appclass_time,
+    perf_define_appclasses,
+    size,
+    sync_JVMDefineClassLockFreeCounter,
+    sync_JVMFindLoadedClassLockFreeCounter,
+    verify,
+Module 'classfile/javaAssertions.hpp', filepath '../jdk8/hotspot/src/share/vm/classfile/javaAssertions.hpp'
+    JavaAssertions,
+    count,
+    createAssertionStatusDirectives,
+    enabled,
+Module 'classfile/javaClasses.hpp', filepath '../jdk8/hotspot/src/share/vm/classfile/javaClasses.hpp'
+    InstanceKlass,
+    _array_klass_offset,
+    _klass_offset,
+    annotations,
+    array_klass,
+    array_klass_offset_in_bytes,
+    as_BasicType,
+    as_Klass,
+    as_utf8_string,
+    backtrace,
+    classRedefinedCount,
+    clazz,
+    create,
+    create_from_platform_dependent_str,
+    create_from_str,
+    create_from_symbol,
+    flags,
+    get_backtrace_offset,
+    get_cp,
+    get_stack_trace_depth,
+    get_stack_trace_element,
+    has_security_manager,
+    index,
+    inherited_access_control_context,
+    initialized,
+    internalize_classname,
+    is_alive,
+    is_authorized,
+    is_daemon,
+    is_instance,
+    is_primitive,
+    is_trusted_loader,
+    java_lang_Class,
+    java_lang_ClassLoader,
+    java_lang_String,
+    java_lang_System,
+    java_lang_Thread,
+    java_lang_Throwable,
+    java_lang_reflect_Constructor,
+    java_lang_reflect_Field,
+    java_lang_reflect_Method,
+    java_security_AccessControlContext,
+    klass,
+    klass_offset_in_bytes,
+    length,
+    message,
+    modifiers,
+    name,
+    offset,
+    parameter_annotations,
+    pending_list_lock_addr,
+    primitive_mirror,
+    primitive_type,
+    print,
+    print_signature,
+    priority,
+    protection_domain,
+    set_array_klass,
+    set_classRedefinedCount,
+    set_cp,
+    set_name,
+    set_priority,
+    set_signers,
+    set_stillborn,
+    signature,
+    signers,
+    slot,
+    stackSize,
+    sun_reflect_ConstantPool,
+    target,
+    thread,
+    threads,
+    type,
+    type_annotations,
+    value,
+Module 'classfile/metadataOnStackMark.hpp', filepath '../jdk8/hotspot/src/share/vm/classfile/metadataOnStackMark.hpp'
+Module 'classfile/symbolTable.hpp', filepath '../jdk8/hotspot/src/share/vm/classfile/symbolTable.hpp'
+    StringTable,
+    SymbolTable,
+    TempNewSymbol,
+    add,
+    intern,
+    lookup_only_unicode,
+    lookup_unicode,
+    new_symbol,
+    release,
+Module 'classfile/systemDictionary.hpp', filepath '../jdk8/hotspot/src/share/vm/classfile/systemDictionary.hpp'
+    Class_klass,
+    Cloneable_klass,
+    Exception_klass,
+    Properties_klass,
+    ProtectionDomain_klass,
+    RuntimeException_klass,
+    SecurityManager_klass,
+    String_klass,
+    SystemDictionary,
+    Thread_klass,
+    Throwable_klass,
+    find,
+    find_instance_or_array_klass,
+    reflect_CallerSensitive_klass,
+    reflect_Constructor_klass,
+    reflect_Field_klass,
+    reflect_Method_klass,
+    reflect_Parameter_klass,
+    resolve_from_stream,
+    resolve_or_null,
+Module 'classfile/verifier.hpp', filepath '../jdk8/hotspot/src/share/vm/classfile/verifier.hpp'
+Module 'classfile/vmSymbols.hpp', filepath '../jdk8/hotspot/src/share/vm/classfile/vmSymbols.hpp'
+    exception_void_signature,
+    getClassContext_name,
+    index_name,
+    int_int_signature,
+    java_lang_ClassNotFoundException,
+    java_lang_CloneNotSupportedException,
+    java_lang_IllegalAccessException,
+    java_lang_IllegalArgumentException,
+    java_lang_IllegalThreadStateException,
+    java_lang_Integer,
+    java_lang_InternalError,
+    java_lang_InterruptedException,
+    java_lang_InvalidClassException,
+    java_lang_NoClassDefFoundError,
+    java_lang_NoSuchMethodError,
+    java_lang_NullPointerException,
+    java_lang_OutOfMemoryError,
+    java_lang_RuntimeException,
+    java_lang_UnsatisfiedLinkError,
+    java_security_PrivilegedActionException,
+    java_util_zip_CRC32,
+    klass_name,
+    member_name,
+    numberOfTrailingZeros_name,
+    object_initializer_name,
+    object_object_object_signature,
+    put_name,
+    run_method_name,
+    serializeAgentPropertiesToByteArray_name,
+    stackSize_name,
+    string_string_string_signature,
+    sun_misc_Signal,
+    symbol_at,
+    vmIntrinsics,
+    vmSymbols,
+    void_method_signature,
+    void_object_signature,
+Module 'code/codeBlob.hpp', filepath '../jdk8/hotspot/src/share/vm/code/codeBlob.hpp'
+Module 'code/codeCache.hpp', filepath '../jdk8/hotspot/src/share/vm/code/codeCache.hpp'
+Module 'code/jvmticmlr.h', filepath '../jdk8/hotspot/src/share/vm/code/jvmticmlr.h'
+Module 'code/nmethod.hpp', filepath '../jdk8/hotspot/src/share/vm/code/nmethod.hpp'
+Module 'code/pcDesc.hpp', filepath '../jdk8/hotspot/src/share/vm/code/pcDesc.hpp'
+Module 'code/scopeDesc.hpp', filepath '../jdk8/hotspot/src/share/vm/code/scopeDesc.hpp'
+Module 'compiler/compileBroker.hpp', filepath '../jdk8/hotspot/src/share/vm/compiler/compileBroker.hpp'
+Module 'endian.h', filepath 'None'
+Module 'errno.h', filepath 'None'
+Module 'gc_implementation/g1/g1SATBCardTableModRefBS.hpp', filepath '../jdk8/hotspot/src/share/vm/gc_implementation/g1/g1SATBCardTableModRefBS.hpp'
+Module 'gc_implementation/g1/heapRegionRemSet.hpp', filepath '../jdk8/hotspot/src/share/vm/gc_implementation/g1/heapRegionRemSet.hpp'
+Module 'gc_implementation/parallelScavenge/parallelScavengeHeap.hpp', filepath '../jdk8/hotspot/src/share/vm/gc_implementation/parallelScavenge/parallelScavengeHeap.hpp'
+Module 'gc_implementation/parallelScavenge/psMarkSweep.hpp', filepath '../jdk8/hotspot/src/share/vm/gc_implementation/parallelScavenge/psMarkSweep.hpp'
+Module 'gc_implementation/shared/gcTimer.hpp', filepath '../jdk8/hotspot/src/share/vm/gc_implementation/shared/gcTimer.hpp'
+Module 'gc_interface/collectedHeap.hpp', filepath '../jdk8/hotspot/src/share/vm/gc_interface/collectedHeap.hpp'
+    capacity,
+Module 'gc_interface/collectedHeap.inline.hpp', filepath '../jdk8/hotspot/src/share/vm/gc_interface/collectedHeap.inline.hpp'
+Module 'interpreter/bytecode.hpp', filepath '../jdk8/hotspot/src/share/vm/interpreter/bytecode.hpp'
+    Bytecode,
+    Bytecode_invoke,
+    Bytecode_invoke_check,
+    Bytecode_new,
+    LookupswitchPair,
+    aligned_addr_at,
+    bcp,
+    cache_index,
+    code,
+    constants,
+    cpcache_entry,
+    index,
+    is_invokeinterface,
+    is_invokestatic,
+    is_invokevirtual,
+    is_static,
+    is_valid,
+    java_code,
+    match,
+    method,
+    number_of_pairs,
+    verify,
+Module 'interpreter/bytecodeStream.hpp', filepath '../jdk8/hotspot/src/share/vm/interpreter/bytecodeStream.hpp'
+Module 'interpreter/interpreter.hpp', filepath '../jdk8/hotspot/src/share/vm/interpreter/interpreter.hpp'
+Module 'interpreter/linkResolver.hpp', filepath '../jdk8/hotspot/src/share/vm/interpreter/linkResolver.hpp'
+Module 'interpreter/oopMapCache.hpp', filepath '../jdk8/hotspot/src/share/vm/interpreter/oopMapCache.hpp'
+Module 'interpreter/rewriter.hpp', filepath '../jdk8/hotspot/src/share/vm/interpreter/rewriter.hpp'
+Module 'java_lang_Class.h', filepath 'None'
+Module 'java_lang_ClassLoader.h', filepath 'None'
+Module 'java_lang_ClassLoader_NativeLibrary.h', filepath 'None'
+Module 'java_lang_Compiler.h', filepath 'None'
+Module 'java_lang_Double.h', filepath 'None'
+Module 'java_lang_Float.h', filepath 'None'
+Module 'java_lang_Object.h', filepath 'None'
+Module 'java_lang_Package.h', filepath 'None'
+Module 'java_lang_Runtime.h', filepath 'None'
+Module 'java_lang_SecurityManager.h', filepath 'None'
+Module 'java_lang_Shutdown.h', filepath 'None'
+Module 'java_lang_StrictMath.h', filepath 'None'
+Module 'java_lang_String.h', filepath 'None'
+Module 'java_lang_System.h', filepath 'None'
+Module 'java_lang_Thread.h', filepath 'None'
+Module 'java_lang_Throwable.h', filepath 'None'
+Module 'java_lang_reflect_Array.h', filepath 'None'
+Module 'java_lang_reflect_Executable.h', filepath 'None'
+Module 'java_lang_reflect_Field.h', filepath 'None'
+Module 'java_lang_reflect_Proxy.h', filepath 'None'
+Module 'jlong.h', filepath 'None'
+Module 'jni_util.h', filepath 'None'
+Module 'jvm_md.h', filepath 'None'
+Module 'limits.h', filepath 'None'
+Module 'machine/endian.h', filepath 'None'
+Module 'memory/allocation.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/allocation.hpp'
+    ResourceMark,
+    check,
+Module 'memory/allocation.inline.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/allocation.inline.hpp'
+Module 'memory/gcLocker.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/gcLocker.hpp'
+Module 'memory/gcLocker.inline.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/gcLocker.inline.hpp'
+Module 'memory/genCollectedHeap.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/genCollectedHeap.hpp'
+Module 'memory/iterator.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/iterator.hpp'
+Module 'memory/metadataFactory.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/metadataFactory.hpp'
+Module 'memory/metaspaceShared.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/metaspaceShared.hpp'
+Module 'memory/oopFactory.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/oopFactory.hpp'
+    new_objArray,
+    new_typeArray,
+    oopFactory,
+Module 'memory/resourceArea.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/resourceArea.hpp'
+Module 'memory/universe.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/universe.hpp'
+Module 'memory/universe.inline.hpp', filepath '../jdk8/hotspot/src/share/vm/memory/universe.inline.hpp'
+Module 'oops/constantPool.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/constantPool.hpp'
+Module 'oops/fieldStreams.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/fieldStreams.hpp'
+    FieldStreamBase,
+    JavaFieldStream,
+    _fd_buf,
+    _fields,
+    _generic_signature_slot,
+    _index,
+    access_flags,
+    allocation_type,
+    contended_group,
+    done,
+    field,
+    field_descriptor,
+    field_holder,
+    generic_signature,
+    index,
+    initval_index,
+    name_index,
+    offset,
+    set_offset,
+    set_signature_index,
+    signature_index,
+Module 'oops/instanceKlass.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/instanceKlass.hpp'
+    ClassState,
+    FieldClosure,
+    InnerClassesIterator,
+    InstanceKlass,
+    PreviousVersionNode,
+    _breakpoints,
+    _idnum_allocated_count,
+    _idx,
+    _init_state,
+    _inner_classes,
+    _is_marked_dependent,
+    _java_fields_count,
+    _length,
+    _local_interfaces,
+    _methods_jmethod_ids,
+    _misc_flags,
+    _next,
+    _nmethod,
+    _nonstatic_field_size,
+    _nonstatic_oop_map_size,
+    _osr_nmethods_head,
+    _reference_type,
+    _thread,
+    allocate_instance,
+    allocate_instance_klass,
+    array_klasses_do,
+    cast,
+    check_valid_for_instantiation,
+    class_annotations,
+    class_type_annotations,
+    compute_enclosing_class_impl,
+    compute_modifier_flags,
+    compute_secondary_supers,
+    constants,
+    count,
+    do,
+    do_local_static_fields,
+    enclosing_method_class_index,
+    field,
+    fieldDescriptor,
+    field_access_flags,
+    field_name,
+    field_offset,
+    field_signature,
+    fields,
+    find,
+    find_field,
+    find_field_from_offset,
+    find_local_field,
+    find_local_field_from_offset,
+    find_method,
+    get_nmethod,
+    holder,
+    idnum_allocated_count,
+    increment,
+    inner_class_info_index,
+    inner_name_index,
+    is_anonymous,
+    is_contended,
+    is_leaf_class,
+    is_marked_dependent,
+    is_same_class_package,
+    java_fields_count,
+    java_super,
+    klass_holder,
+    length,
+    link_class,
+    local_interfaces,
+    method_with_idnum,
+    methods,
+    next,
+    next_previous_version,
+    nmethodBucket,
+    nonstatic_field_size,
+    nonstatic_oop_map_size,
+    oop_is_instance_slow,
+    outer_class_info_index,
+    process_interfaces,
+    register_finalizer,
+    set_init_state,
+    set_is_contended,
+    set_is_marked_dependent,
+    set_local_interfaces,
+    set_next,
+    set_nonstatic_field_size,
+    set_reference_type,
+    size,
+    static_field_size,
+    super_types_do,
+    uncached_lookup_method,
+    vtable,
+Module 'oops/instanceMirrorKlass.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/instanceMirrorKlass.hpp'
+Module 'oops/instanceOop.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/instanceOop.hpp'
+Module 'oops/klassVtable.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/klassVtable.hpp'
+Module 'oops/markOop.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/markOop.hpp'
+Module 'oops/method.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/method.hpp'
+    CompressedLineNumberWriteStream,
+    ExceptionTable,
+    Method,
+    _access_flags,
+    _adapter,
+    _bci,
+    _code,
+    _compiled_invocation_count,
+    _constMethod,
+    _from_compiled_entry,
+    _length,
+    _line,
+    _method_data,
+    _table,
+    _vtable_index,
+    access_flags,
+    access_flags_offset,
+    annotation_default,
+    backedge_count,
+    bci,
+    caller_sensitive,
+    catch_type_index,
+    checked_exceptions_length,
+    checked_exceptions_start,
+    clear_breakpoint,
+    clear_not_c1_compilable,
+    clear_not_c1_osr_compilable,
+    clear_not_c2_compilable,
+    clear_number_of_breakpoints,
+    code,
+    code_base,
+    code_size,
+    collect_statistics,
+    compiled_invocation_counter_offset,
+    constMethod,
+    const_offset,
+    constants,
+    end_pc,
+    exception_table_length,
+    exception_table_start,
+    generic_signature,
+    generic_signature_index,
+    handler_pc,
+    has_unloaded_classes_in_signature,
+    header_size,
+    incr_number_of_breakpoints,
+    intrinsic_id,
+    invocation_count,
+    is_final_method,
+    is_ignored_by_security_stack_walk,
+    is_initializer,
+    is_method,
+    is_native,
+    is_not_c1_compilable,
+    is_not_c1_osr_compilable,
+    is_not_c2_compilable,
+    is_not_c2_osr_compilable,
+    is_not_osr_compilable,
+    is_overpass,
+    is_private,
+    is_public,
+    is_static_initializer,
+    jmethod_id,
+    line,
+    match,
+    max_locals,
+    max_stack,
+    method_counters,
+    method_counters_offset,
+    method_data_offset,
+    method_holder,
+    method_idnum,
+    method_parameters_length,
+    method_parameters_start,
+    method_size,
+    name,
+    name_and_sig_as_C_string,
+    name_index,
+    number_of_breakpoints,
+    parameter_annotations,
+    restore_vtable,
+    set,
+    set_catch_type_index,
+    set_end_pc,
+    set_has_jsrs,
+    set_method_counters,
+    set_method_idnum,
+    set_name_index,
+    set_not_c1_compilable,
+    set_not_c1_osr_compilable,
+    set_not_c2_compilable,
+    set_not_compilable,
+    set_not_compilable_quietly,
+    set_not_osr_compilable,
+    set_signature_index,
+    set_stackmap_data,
+    signature,
+    signature_index,
+    size,
+    size_of_parameters,
+    sort_methods,
+    start_pc,
+    type_annotations,
+    verifier_max_stack,
+    was_executed_more_than,
+    was_never_executed,
+Module 'oops/objArrayKlass.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/objArrayKlass.hpp'
+    ObjArrayKlass,
+    copy_array,
+    element_klass,
+Module 'oops/objArrayOop.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/objArrayOop.hpp'
+Module 'oops/oop.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/oop.hpp'
+Module 'oops/oop.inline.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/oop.inline.hpp'
+Module 'oops/oop.inline2.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/oop.inline2.hpp'
+Module 'oops/oopsHierarchy.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/oopsHierarchy.hpp'
+Module 'oops/symbol.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/symbol.hpp'
+    _body,
+    identity_hash,
+Module 'oops/typeArrayKlass.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/typeArrayKlass.hpp'
+    external_name,
+Module 'oops/typeArrayOop.hpp', filepath '../jdk8/hotspot/src/share/vm/oops/typeArrayOop.hpp'
+Module 'precompiled.hpp', filepath '../jdk8/hotspot/src/share/vm/precompiled/precompiled.hpp'
+Module 'runtime/arguments.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/arguments.hpp'
+    ArgsRange,
+    Arguments,
+    CompileOnlyMethodsNum,
+    JvmtiExport,
+    Mode,
+    SystemProperty,
+    VMStructs,
+    _java_command,
+    _java_endorsed_dirs,
+    _java_ext_dirs,
+    _java_library_path,
+    _key,
+    _sun_boot_library_path,
+    _system_properties,
+    first,
+    is_empty,
+    key,
+    libraries,
+    mode,
+    name,
+    remove,
+    system_properties,
+    vfprintf_hook,
+Module 'runtime/atomic.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/atomic.hpp'
+Module 'runtime/biasedLocking.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/biasedLocking.hpp'
+Module 'runtime/compilationPolicy.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/compilationPolicy.hpp'
+Module 'runtime/deoptimization.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/deoptimization.hpp'
+Module 'runtime/dtraceJSDT.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/dtraceJSDT.hpp'
+    DTraceJSDT,
+    activate,
+    is_supported,
+Module 'runtime/fieldDescriptor.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/fieldDescriptor.hpp'
+Module 'runtime/fprofiler.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/fprofiler.hpp'
+    ThreadProfiler,
+    native,
+Module 'runtime/frame.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/frame.hpp'
+Module 'runtime/handles.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/handles.hpp'
+Module 'runtime/handles.inline.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/handles.inline.hpp'
+Module 'runtime/init.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/init.hpp'
+Module 'runtime/interfaceSupport.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/interfaceSupport.hpp'
+    ThreadToNativeFromVM,
+Module 'runtime/java.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/java.hpp'
+    JDK_Version,
+    Universe,
+    before_exit,
+    current,
+    jdk_update,
+    register_on_exit_function,
+    special_update_version,
+    supports_thread_park_blocker,
+    vm_exit,
+Module 'runtime/javaCalls.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/javaCalls.hpp'
+    JavaCallArguments,
+    JavaCalls,
+    call,
+    call_virtual,
+    receiver,
+    result,
+Module 'runtime/jfieldIDWorkaround.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/jfieldIDWorkaround.hpp'
+    from_instance_jfieldID,
+    is_checked_jfieldID,
+    is_instance_jfieldID,
+    jfieldIDWorkaround,
+    klass_hash_ok,
+    raw_instance_offset,
+    verify_instance_jfieldID,
+Module 'runtime/jniHandles.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/jniHandles.hpp'
+Module 'runtime/mutex.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/mutex.hpp'
+Module 'runtime/mutexLocker.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/mutexLocker.hpp'
+Module 'runtime/objectMonitor.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/objectMonitor.hpp'
+Module 'runtime/objectMonitor.inline.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/objectMonitor.inline.hpp'
+Module 'runtime/os.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/os.hpp'
+    GrowableArray,
+    ThreadPriority,
+    _page_sizes,
+    accept,
+    active_processor_count,
+    close,
+    dll_load,
+    dll_lookup,
+    dont_yield,
+    find_agent_function,
+    fsync,
+    ftruncate,
+    get_default_process_handle,
+    get_host_name,
+    get_sock_name,
+    get_sock_opt,
+    init,
+    init_page_sizes,
+    is_interrupted,
+    javaTimeMillis,
+    javaTimeNanos,
+    lasterror,
+    lseek,
+    native_path,
+    open,
+    os,
+    pd_release_memory,
+    pd_uncommit_memory,
+    read,
+    recvfrom,
+    restartable_read,
+    run,
+    running,
+    sendto,
+    set_native_thread_name,
+    set_sock_opt,
+    signal_init,
+    signal_init_pd,
+    sleep,
+    socket_available,
+    state,
+    suspended,
+    timeout,
+    write,
+    yield,
+Module 'runtime/perfData.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/perfData.hpp'
+    PerfCounter,
+    all,
+    append,
+    at,
+    clone,
+    format,
+    inc,
+Module 'runtime/reflection.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/reflection.hpp'
+    Reflection,
+    array_component_type,
+    array_get,
+    box,
+    check_for_inner_class,
+    invoke,
+    invoke_constructor,
+    new_constructor,
+    new_field,
+    new_method,
+Module 'runtime/reflectionUtils.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/reflectionUtils.hpp'
+Module 'runtime/relocator.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/relocator.hpp'
+Module 'runtime/serviceThread.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/serviceThread.hpp'
+Module 'runtime/sharedRuntime.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/sharedRuntime.hpp'
+Module 'runtime/signature.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/signature.hpp'
+    SignatureIterator,
+    method,
+Module 'runtime/stackValueCollection.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/stackValueCollection.hpp'
+Module 'runtime/thread.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/thread.hpp'
+Module 'runtime/thread.inline.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/thread.inline.hpp'
+Module 'runtime/vframe.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/vframe.hpp'
+    at_end,
+    frame_id,
+    lock,
+    security_get_caller_frame,
+    security_next,
+    sender,
+    top,
+    vframeStream,
+    vframeStreamCommon,
+Module 'runtime/vframe_hp.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/vframe_hp.hpp'
+Module 'runtime/vmStructs.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/vmStructs.hpp'
+Module 'runtime/vmThread.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/vmThread.hpp'
+Module 'runtime/vm_operations.hpp', filepath '../jdk8/hotspot/src/share/vm/runtime/vm_operations.hpp'
+    VM_Exit,
+    VM_Operation,
+    block_if_vm_exited,
+    doit,
+    throwable,
+Module 'services/attachListener.hpp', filepath '../jdk8/hotspot/src/share/vm/services/attachListener.hpp'
+    AttachListener,
+    _arg,
+    arg,
+    func,
+    is_attach_supported,
+    name,
+Module 'services/management.hpp', filepath '../jdk8/hotspot/src/share/vm/services/management.hpp'
+    end,
+    start,
+Module 'services/runtimeService.hpp', filepath '../jdk8/hotspot/src/share/vm/services/runtimeService.hpp'
+Module 'services/serviceUtil.hpp', filepath '../jdk8/hotspot/src/share/vm/services/serviceUtil.hpp'
+Module 'services/threadService.hpp', filepath '../jdk8/hotspot/src/share/vm/services/threadService.hpp'
+    JavaThreadInObjectWaitState,
+    JavaThreadSleepState,
+    ThreadService,
+    ThreadsListEnumerator,
+    _active,
+    _method,
+    _old_state,
+    _stat,
+    dump_stack_traces,
+    java_thread,
+    monitor_wait_begin,
+    num_threads,
+    perf_recursion_counts_addr,
+    perf_timers_addr,
+    set_thread_status,
+    threadObj,
+Module 'signal.h', filepath 'None'
+Module 'stdarg.h', filepath 'None'
+Module 'stdio.h', filepath 'None'
+Module 'stdlib.h', filepath 'None'
+Module 'string.h', filepath 'None'
+Module 'sys/stat.h', filepath 'None'
+Module 'tchar.h', filepath 'None'
+Module 'trace/tracing.hpp', filepath '../jdk8/hotspot/src/share/vm/trace/tracing.hpp'
+Module 'unistd.h', filepath 'None'
+Module 'utilities/bitMap.inline.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/bitMap.inline.hpp'
+Module 'utilities/copy.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/copy.hpp'
+    Copy,
+    conjoint_jlongs_atomic,
+Module 'utilities/defaultStream.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/defaultStream.hpp'
+    hold,
+    instance,
+Module 'utilities/dtrace.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/dtrace.hpp'
+Module 'utilities/events.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/events.hpp'
+Module 'utilities/exceptions.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/exceptions.hpp'
+Module 'utilities/globalDefinitions.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/globalDefinitions.hpp'
+Module 'utilities/growableArray.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/growableArray.hpp'
+Module 'utilities/histogram.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/histogram.hpp'
+Module 'utilities/macros.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/macros.hpp'
+Module 'utilities/ostream.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/ostream.hpp'
+    date_stamp,
+    dec,
+Module 'utilities/quickSort.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/quickSort.hpp'
+Module 'utilities/top.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/top.hpp'
+Module 'utilities/utf8.hpp', filepath '../jdk8/hotspot/src/share/vm/utilities/utf8.hpp'
+    UTF8,
+    as_utf8,
+    convert_to_utf8,
+Module 'values.h', filepath 'None'
+
+37/154 modules used, 574 entities required
