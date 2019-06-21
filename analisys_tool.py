@@ -25,7 +25,7 @@ USAGE_VIEW = False
 # Processing options
 
 ONLY_C_STYLE = True
-PROCESS_ALTERNATIVES = False
+PROCESS_ALTERNATIVES = True
 
 # Logging
 
@@ -43,7 +43,7 @@ class DependencyNode:
             self.add_parent(parent)
         # self.implementation = None
         self.structure = None
-        self.required_functions = {}    # name -> {name, start_line, end_line}
+        self.required_functions = {}    # name -> [{name, start_line, end_line}, ..]
                                         # Dictionary is needed to keep uniqueness of function entities
         self.root = False
         self.header = None
@@ -171,7 +171,41 @@ class DependencyNode:
                     self.structure = file_structure
 
             # os.system("gcc {} > {}/prep.{}")
+
+    def _compare_functions(self, f1, f2):
+        if f1['name'] == f2['name'] and \
+           f1["start_line"] == f2["start_line"] and \
+           f1["end_line"] == f2["end_line"]:
+            return True
+        else:
+            return False
+
+    def _find_file_coverage(self, target_lines):
+        # The intersection of the structures takes place
+        # Due to this reason, need to combine target lines so that
+        # there will be no intersections
+
+        sorted_target_lines = sorted(target_lines, key=lambda x : x[0])
+        new_target_lines = []
+
+        current_start = 0
+        current_end = 0
+
+        for start_line, end_line in sorted_target_lines:
+            if start_line > current_end:
+                new_target_lines.append((current_start, current_end))
+                current_start = start_line
+                if end_line == -1:
+                    current_end = current_start
+                else:
+                    current_end = end_line
+            else:
+                current_end = max(current_end, end_line)
         
+        new_target_lines.append((current_start, current_end))
+
+        return new_target_lines
+
     def find_used_functions(self):
             
         # TODO : ADD GLOBAL VARIABLES TOO
@@ -191,19 +225,24 @@ class DependencyNode:
             # logging.debug("path='{}'".format(dep.file_path))
             # logging.debug("structure[function] = {}".format(dep.structure["function"]))
 
+            # Combining all constructions from a file to one list
             struct_keywords = []    # Contains all constructions in dependencies
             if ONLY_C_STYLE:    # Need only functions and variables
                 struct_keywords = dep.structure["function"] + dep.structure["variable"]
             else:   # Include everything
                 for key in dep.structure.keys():
+                    # if not (key == "function" or key == "variable"):
+                    #     continue
                     struct_keywords.extend(dep.structure[key])
 
+            # Processing constructions 
             for func in struct_keywords:
                 if func["name"] in keywords_table.keys():
-                    logging.warning("duplicating keys '{}' at '{}'. New dependency '{}'".format(\
-                        func["name"], self.name, dep.name))
                     if PROCESS_ALTERNATIVES:
                         keywords_table[func["name"]].append((dep, func))
+                    else:
+                        logging.warning("duplicating keys '{}' at '{}'. New dependency '{}'".format(\
+                            func["name"], self.name, dep.name))
                 else:
                     keywords_table[func["name"]] = [(dep, func)]
 
@@ -229,6 +268,7 @@ class DependencyNode:
 
         # Find subset of included keywords
         appeared_keywords = set()
+
         pattern = "\\b" + "\\b|\\b".join(keywords_table.keys()) + "\\b"  # regex pattern to find keywords from dependencies
         logging.debug("Pattern applied '{}'".format(pattern))
         if not pattern:
@@ -247,12 +287,13 @@ class DependencyNode:
 
             new_target_lines = []   # For the functions declared in this file
 
-            for func in self.required_functions.values():
-                # functions having no body_start or body_end assumed to be prototypes
-                if not func["start_line"] or not func["end_line"]:
-                    continue
+            for func_list in self.required_functions.values():
+                for func in func_list:
+                    # functions having no body_start or body_end assumed to be prototypes
+                    if not func["start_line"] or not func["end_line"]:
+                        continue
 
-                new_target_lines.append((func["start_line"], func["end_line"]))
+                    new_target_lines.append((func["start_line"], func["end_line"]))
             
 
             used_local_functions = set(self.required_functions.keys())
@@ -260,7 +301,8 @@ class DependencyNode:
             # re.findall if needed line is reached
             with open(self.file_path) as f:
                 while new_target_lines: # While we have something new to add
-                    target_lines = sorted(new_target_lines, key=lambda x : x[0])
+                    # target_lines = sorted(new_target_lines, key=lambda x : x[0])
+                    target_lines = self._find_file_coverage(new_target_lines)
                     current_range_idx = 0
 
                     new_target_lines.clear()
@@ -289,14 +331,27 @@ class DependencyNode:
                                 # new_target_lines.append(file_functions[local_func_name][1])
                                 for self_dep, local_func in file_functions[local_func_name]:
                                     # local_func = file_functions[local_func_name][1]
-                                    self.required_functions[local_func_name] = local_func
+                                    if local_func_name in self.required_functions.keys():
+                                        self.required_functions[local_func_name].append(local_func)
+                                    else:
+                                        self.required_functions[local_func_name] = [local_func]
+
                                     if not local_func["start_line"] or not local_func["end_line"]:
                                         continue
                                     new_target_lines.append((local_func["start_line"], local_func["end_line"]))
 
-                        if str_idx > current_range[1] - 1:   # Current range is ended
-                            current_range_idx += 1
+                        # if str_idx >= current_range[1] - 1:   # Current range is ended
+                        #     prev_range = current_range
+                        #     current_range_idx += 1
+                        #     # Also check if there are repeating ranges
+                        #     while current_range_idx != len(target_lines) and \
+                        #           target_lines[current_range_idx][0] == prev_range[0] and \
+                        #           target_lines[current_range_idx][1] == prev_range[1]:
+                        #         current_range_idx += 1
 
+                        while   current_range_idx != len(target_lines) and \
+                                str_idx >= target_lines[current_range_idx][1] - 1:
+                            current_range_idx += 1
 
         # Add required functions to corresponding nodes
         logging.debug("keys found in '{}'".format(self.file_path))
@@ -308,11 +363,27 @@ class DependencyNode:
             for keyword_node, keyword_function in keywords_table[key]:
                 # if key in keyword_node.structure["function"]:
                 # keyword_node.required_functions.add(keyword_function)
+
                 if not key in keyword_node.required_functions.keys():
                     logging.debug("found key: '{}' from '{}'".format(key, keyword_node.name))
-                    keyword_node.required_functions[key] = keyword_function
-                    if not self._find_node(updated_nodes, keyword_node):
-                        updated_nodes.append(keyword_node)
+                    keyword_node.required_functions[key] = [keyword_function]
+                else:
+                    # Check if this function is already there
+                    is_in_required = False
+                    for existing_func in keyword_node.required_functions[key]:
+                        # if existing_func["start_line"] ==  keyword_function["start_line"] and \
+                        #    existing_func["end_line"] ==  keyword_function["end_line"]:
+                        if self._compare_functions(existing_func, keyword_function):
+                            is_in_required = True
+                            break
+
+                    if not is_in_required:
+                        keyword_node.required_functions[key].append(keyword_function)
+                    else:
+                        continue    # Don't add to updated_nodes
+                        
+                if not self._find_node(updated_nodes, keyword_node):
+                    updated_nodes.append(keyword_node)
         
         return updated_nodes
 
@@ -373,6 +444,7 @@ class Analyzer:
 
         # Extracting files to search
         self.search_files = self._extract_files_from_dirs(self.targets['Search_dirs'])
+        self.search_files.extend(self.starting_files)
 
         # Extracting files to search edge files
         self.edge_dirs = self._extract_files_from_dirs(self.targets['Edge_search_dirs'])
@@ -431,6 +503,7 @@ class Analyzer:
 
         # Dependencies found in the header
         if dep_node.header:
+
             with open(dep_node.header) as f: # Dependencies of implementation if it exists
                 for str_idx, content in enumerate(f):
                     new_include = re.findall(r"#include (\".*\"|<.*>)", content)
@@ -616,37 +689,50 @@ class Analyzer:
 
 
         # Analyzing dependent functions
-        dep_parents = {}    # file path -> number of unprocessed parents
-        added_to_queue = {}
-        for node in self.known_dependencies:
-            # dep_parents[node.file_path] = [p.file_path for p in node.parents]
-            dep_parents[node.file_path] = len(node.parents)
-            added_to_queue[node.file_path] = False
-        
-        for node in self.edge_dependencies:
-            # dep_parents[node.file_path] = [p.file_path for p in node.parents]
-            dep_parents[node.file_path] = len(node.parents)
-            added_to_queue[node.file_path] = False
-    
 
         # Queue to use
         code_processing_queue = deque()
+        names_in_queue = set()    # Paths that are already in the queue
 
         # Process root nodes first
         for node in self.root_nodes:
             code_processing_queue.append(node)
+            names_in_queue.add(node.name)
 
         while code_processing_queue:
             current_node = code_processing_queue.popleft()
+            names_in_queue.remove(current_node.name)
             if current_node.name in not_found_files:
                 continue
+            
             logging.debug("Code processing queue - current node : '{}'".format(current_node.name))
             updated_deps = current_node.find_used_functions()
             # for dep in current_node.dependencies:
             for dep in updated_deps:
-                code_processing_queue.append(dep)
-                added_to_queue[dep.file_path] = True
+                if not dep.name in names_in_queue:
+                    code_processing_queue.append(dep)
+                    names_in_queue.add(dep.name)
         
+        # # Process root nodes first
+        # for node in self.root_nodes:
+        #     code_processing_queue.append(node)
+        #     names_in_queue.add(node.file_path)
+
+        # while code_processing_queue:
+        #     current_node = code_processing_queue.popleft()
+        #     names_in_queue.remove(current_node.file_path)
+        #     if current_node.name in not_found_files:
+        #         continue
+            
+        #     logging.debug("Code processing queue - current node : '{}'".format(current_node.name))
+        #     updated_deps = current_node.find_used_functions()
+        #     # for dep in current_node.dependencies:
+        #     for dep in updated_deps:
+        #         if not dep.file_path in names_in_queue:
+        #             code_processing_queue.append(dep)
+        #             names_in_queue.add(dep.file_path)
+
+
         # Check if any file left unprocessed
         # for file_path, parents_count in dep_parents.items():
         #     if parents_count != 0:
