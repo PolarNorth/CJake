@@ -1,24 +1,27 @@
 import os
 import json
 import re
+import sys
+import getopt
 from pathlib import Path
 
-GENERATE_STUB_FILES = True
+GENERATE_STUB_FILES = False
 
 HEADER_FORMATS = (".h", ".hpp")
-# SOURCE_DIRS = ["../headers_generation/generated"]
+SOURCE_DIRS = ["generated"]
 # SOURCE_DIRS = ["/usr/include"]
-SOURCE_DIRS = [
-    "/usr/include/c++/7",
-    "/usr/include/x86_64-linux-gnu/c++/7",
-    "/usr/include/c++/7/backward",
-    "/usr/lib/gcc/x86_64-linux-gnu/7/include",
-    "/usr/local/include",
-    "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed",
-    "/usr/include",
-]
+# SOURCE_DIRS = [
+#     "/usr/include/c++/7",
+#     "/usr/include/x86_64-linux-gnu/c++/7",
+#     "/usr/include/c++/7/backward",
+#     "/usr/lib/gcc/x86_64-linux-gnu/7/include",
+#     "/usr/local/include",
+#     "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed",
+#     "/usr/include",
+# ]
 
-OUTPUT_DIR = "macros_headers/c_cpp_standard"
+# OUTPUT_DIR = "macros_headers/c_cpp_standard"
+OUTPUT_DIR = "macros_headers"
 
 DEBUG = True
 
@@ -108,6 +111,41 @@ def copy_headers(search_dirs):
                 # print(file_path)
 
     
+def parse_args():
+    usage_str = """python generate_macro_only_headers.py -s source_dirs output_dir
+    
+    Generates headers that contain only macros from given sources.
+
+    -h for help
+    -s to generate empty (stub) files
+    source_dirs are the paths separated by commas where sources are located
+    output_dir is the directory to where source dirs structure will be copied"""
+
+    opts = None
+    args = None
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "aclf")
+    except getopt.GetoptError:
+        print("Wrong arguments. Usage {}".format(usage_str))
+        sys.exit(2)
+    
+    for opt, arg in opts:
+        if opt == '-h':
+            print(usage_str)
+            sys.exit(0)
+        elif opt == '-s':
+            GENERATE_STUB_FILES = True
+    
+    if len(args) != 2:
+        print("Wrong number of arguments. Expected 2, but {} were given".format(str(len(args))))
+        sys.exit(2)
+    else:
+        SOURCE_DIRS = args[0].split(",")
+        OUTPUT_DIR = args[1]
 
 if __name__ == "__main__":
+    
+    parse_args()
+
     copy_headers(SOURCE_DIRS)

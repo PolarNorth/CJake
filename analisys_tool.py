@@ -5,6 +5,9 @@ import tempfile
 import subprocess
 import logging
 import datetime
+import sys
+import getopt
+import collections
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from collections import deque
@@ -24,14 +27,80 @@ USAGE_VIEW = False
 
 # Processing options
 
-ONLY_C_STYLE = True
+ONLY_C_STYLE = False
 PROCESS_ALTERNATIVES = True
 
 # Logging
 
-LOG_TO_STDOUT = False
+LOG_TO_STDOUT = True
 LOG_NAME_FORMAT = "CJake log %H-%M-%S %d-%m-%Y.log"
 LOG_LEVEL = logging.DEBUG
+
+# Arguments parsing
+
+PARSE_ARGUMENTS = True
+
+### Imported code
+### from http://code.activestate.com/recipes/576694/
+class OrderedSet(collections.MutableSet):
+
+    def __init__(self, iterable=None):
+        self.end = end = [] 
+        end += [None, end, end]         # sentinel node for doubly linked list
+        self.map = {}                   # key --> [key, prev, next]
+        if iterable is not None:
+            self |= iterable
+
+    def __len__(self):
+        return len(self.map)
+
+    def __contains__(self, key):
+        return key in self.map
+
+    def add(self, key):
+        if key not in self.map:
+            end = self.end
+            curr = end[1]
+            curr[2] = end[1] = self.map[key] = [key, curr, end]
+
+    def discard(self, key):
+        if key in self.map:        
+            key, prev, next = self.map.pop(key)
+            prev[2] = next
+            next[1] = prev
+
+    def __iter__(self):
+        end = self.end
+        curr = end[2]
+        while curr is not end:
+            yield curr[0]
+            curr = curr[2]
+
+    def __reversed__(self):
+        end = self.end
+        curr = end[1]
+        while curr is not end:
+            yield curr[0]
+            curr = curr[1]
+
+    def pop(self, last=True):
+        if not self:
+            raise KeyError('set is empty')
+        key = self.end[1][0] if last else self.end[2][0]
+        self.discard(key)
+        return key
+
+    def __repr__(self):
+        if not self:
+            return '%s()' % (self.__class__.__name__,)
+        return '%s(%r)' % (self.__class__.__name__, list(self))
+
+    def __eq__(self, other):
+        if isinstance(other, OrderedSet):
+            return len(self) == len(other) and list(self) == list(other)
+        return set(self) == set(other)
+
+### End of imported code
 
 class DependencyNode:
     def __init__(self, file_path, name, parent, preprocessing_includes):
@@ -90,7 +159,8 @@ class DependencyNode:
                 gcc_command.append("-E")
                 gcc_command.append("-P")
                 gcc_command.append(self.file_path)
-                subprocess.run(gcc_command, stdout=prep_file)
+                gcc_process = subprocess.Popen(gcc_command, stdout=prep_file)
+                gcc_process.wait()
 
                 # Run doxygen
 
@@ -204,7 +274,9 @@ class DependencyNode:
         
         new_target_lines.append((current_start, current_end))
 
-        return new_target_lines
+        logging.debug("Combined target lines : " + str(new_target_lines))
+
+        return new_target_lines[1:]
 
     def find_used_functions(self):
             
@@ -264,10 +336,10 @@ class DependencyNode:
                 file_functions[func["name"]] = [(self, func)]
         
         logging.debug("Processing functions at '{}', path='{}', required functions : {}".format(self.name, self.file_path, str(self.required_functions.keys())))
-        logging.debug("is subset : {}".format(str(set(file_functions.keys()).issubset(keywords_table.keys()))))
+        # logging.debug("is subset : {}".format(str(OrderedSet(file_functions.keys()).issubset(keywords_table.keys()))))
 
         # Find subset of included keywords
-        appeared_keywords = set()
+        appeared_keywords = set()   # TODO : FIX, ORDERED SET IS GIVING STABLE RESULTS
 
         pattern = "\\b" + "\\b|\\b".join(keywords_table.keys()) + "\\b"  # regex pattern to find keywords from dependencies
         logging.debug("Pattern applied '{}'".format(pattern))
@@ -296,7 +368,7 @@ class DependencyNode:
                     new_target_lines.append((func["start_line"], func["end_line"]))
             
 
-            used_local_functions = set(self.required_functions.keys())
+            used_local_functions = set(self.required_functions.keys())  # TODO Can be ordered set, but not sure
 
             # re.findall if needed line is reached
             with open(self.file_path) as f:
@@ -332,7 +404,15 @@ class DependencyNode:
                                 for self_dep, local_func in file_functions[local_func_name]:
                                     # local_func = file_functions[local_func_name][1]
                                     if local_func_name in self.required_functions.keys():
-                                        self.required_functions[local_func_name].append(local_func)
+                                        is_in_required = False
+                                        for existing_func in self.required_functions[local_func_name]:
+                                            if self._compare_functions(existing_func, local_func):
+                                                is_in_required = True
+                                                break
+                                        if not is_in_required:
+                                            self.required_functions[local_func_name].append(local_func)
+                                        else:
+                                            continue
                                     else:
                                         self.required_functions[local_func_name] = [local_func]
 
@@ -349,8 +429,11 @@ class DependencyNode:
                         #           target_lines[current_range_idx][1] == prev_range[1]:
                         #         current_range_idx += 1
 
-                        while   current_range_idx != len(target_lines) and \
-                                str_idx >= target_lines[current_range_idx][1] - 1:
+                        # while   current_range_idx != len(target_lines) and \
+                        #         str_idx > target_lines[current_range_idx][1] - 1:
+                        #     current_range_idx += 1
+                        if str_idx == target_lines[current_range_idx][1] - 1:
+                            # If at the of current range, increase counter
                             current_range_idx += 1
 
         # Add required functions to corresponding nodes
@@ -363,6 +446,8 @@ class DependencyNode:
             for keyword_node, keyword_function in keywords_table[key]:
                 # if key in keyword_node.structure["function"]:
                 # keyword_node.required_functions.add(keyword_function)
+
+                # TODO : Need to check functions if there was a recursive call or external.
 
                 if not key in keyword_node.required_functions.keys():
                     logging.debug("found key: '{}' from '{}'".format(key, keyword_node.name))
@@ -595,7 +680,7 @@ class Analyzer:
         for node in self.root_nodes:
             processing_queue.append(node)
         
-        processed_names = set(self.root_nodes)
+        processed_names = OrderedSet(self.root_nodes)
 
         while processing_queue:
             current_node = processing_queue.popleft()
@@ -635,12 +720,10 @@ class Analyzer:
                 # Process new nodes
                 d_node = self.is_known_dep_name(d_name) # If known and already know, add parent
                 if d_node:
-                    # d_node.parents.append(current_file)
                     d_node.add_parent(current_file)
                 else:
                     d_node = self.is_edge_dep_name(d_name) #If edge and already have, add parent
                     if d_node:
-                        # d_node.parents.append(current_file)
                         d_node.add_parent(current_file)
                     else:   # Else try to find in search files and add to needed list
                         d_path = self.find_file(d_name)
@@ -659,84 +742,39 @@ class Analyzer:
                             self.edge_dependencies.append(d_node)
 
         # Processing edge files
-        not_found_files = set()
+        not_found_files = OrderedSet()
 
         for e_node in self.edge_dependencies:
             e_node.file_path = self.find_edge_filepath(e_node.name)
             if not e_node.file_path:
                 not_found_files.add(e_node.name)
             e_node.extract_functions(self.preprocessing_includes)
-                
-        # # Extracting functions for the whole tree
-        # for node in self.known_dependencies:
-        #     if not node.structure:
-        #         node.extract_functions(self.preprocessing_includes)
-        #     else:
-        #         logging.warning("duplicating file in known_dependencies '{}'".format(node.name))
-        
-        # for node in self.edge_dependencies:
-        #     if not node.structure and not node.name in not_found_files:
-        #         node.extract_functions(self.preprocessing_includes)
-        #     else:
-        #         logging.warning("duplicating file in edge_dependencies '{}'".format(node.name))
-        
-        # Debug information to be displayed
-
-        # print("jvm.h in known [{}], in edge [{}]".format(str(any([d.name == "jvm.h" for d in self.known_dependencies])),\
-        #                                                  str(any([d.name == "jvm.h" for d in self.edge_dependencies]))))
-
-        # End debug
-
 
         # Analyzing dependent functions
 
         # Queue to use
         code_processing_queue = deque()
-        names_in_queue = set()    # Paths that are already in the queue
+        # names_in_queue = OrderedSet()    # Paths that are already in the queue
 
         # Process root nodes first
         for node in self.root_nodes:
             code_processing_queue.append(node)
+            names_in_queue = set()
             names_in_queue.add(node.name)
 
-        while code_processing_queue:
-            current_node = code_processing_queue.popleft()
-            names_in_queue.remove(current_node.name)
-            if current_node.name in not_found_files:
-                continue
-            
-            logging.debug("Code processing queue - current node : '{}'".format(current_node.name))
-            updated_deps = current_node.find_used_functions()
-            # for dep in current_node.dependencies:
-            for dep in updated_deps:
-                if not dep.name in names_in_queue:
-                    code_processing_queue.append(dep)
-                    names_in_queue.add(dep.name)
-        
-        # # Process root nodes first
-        # for node in self.root_nodes:
-        #     code_processing_queue.append(node)
-        #     names_in_queue.add(node.file_path)
-
-        # while code_processing_queue:
-        #     current_node = code_processing_queue.popleft()
-        #     names_in_queue.remove(current_node.file_path)
-        #     if current_node.name in not_found_files:
-        #         continue
-            
-        #     logging.debug("Code processing queue - current node : '{}'".format(current_node.name))
-        #     updated_deps = current_node.find_used_functions()
-        #     # for dep in current_node.dependencies:
-        #     for dep in updated_deps:
-        #         if not dep.file_path in names_in_queue:
-        #             code_processing_queue.append(dep)
-        #             names_in_queue.add(dep.file_path)
-
-
-        # Check if any file left unprocessed
-        # for file_path, parents_count in dep_parents.items():
-        #     if parents_count != 0:
-        #         logging.warning("'{}' left unprocessed".format(file_path))
+            while code_processing_queue:
+                current_node = code_processing_queue.popleft()
+                names_in_queue.remove(current_node.name)
+                if current_node.name in not_found_files:
+                    continue
+                
+                logging.debug("Code processing queue - current node : '{}'".format(current_node.name))
+                updated_deps = current_node.find_used_functions()
+                # for dep in current_node.dependencies:
+                for dep in updated_deps:
+                    if not dep.name in names_in_queue:
+                        code_processing_queue.append(dep)
+                        names_in_queue.add(dep.name)
         
         # Output needed results
         self.print_edge_deps()
@@ -752,8 +790,52 @@ class Analyzer:
         
         
 
+def parse_args():
+    usage_str = """python analysis_tool.py -h -a -c -l -f target_files.json
+    -h for help
+    -a to process alternatives
+    -c to process only C functions and variables
+    -l output logs to the file
+    -f process files set in 'Files' in target_files.json
+    target_files.json is a path to file containing settings (./target_files.json if not set)
+    The output is passed to STDOUT"""
+
+    opts = None
+    args = None
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "aclf")
+    except getopt.GetoptError:
+        print("Wrong arguments. Usage {}".format(usage_str))
+        sys.exit(2)
+    
+    for opt, arg in opts:
+        print(opt)
+        if opt == '-h':
+            print(usage_str)
+            sys.exit(0)
+        elif opt == '-a':
+            global PROCESS_ALTERNATIVES
+            PROCESS_ALTERNATIVES = True
+            print("PROCESS_ALTERNATIVES = {}".format(str(PROCESS_ALTERNATIVES)))
+        elif opt == '-c':
+            global ONLY_C_STYLE
+            ONLY_C_STYLE = True
+        elif opt == '-l':
+            global LOG_TO_STDOUT
+            LOG_TO_STDOUT = False
+        elif opt == '-f':
+            global PROCESS_FILES
+            PROCESS_FILES = True
+    
+    if args:
+        TARGETS_JSON_FILE = args[0]
+    
 
 if __name__ == "__main__":
+
+    if PARSE_ARGUMENTS:
+        parse_args()
 
     if not LOG_TO_STDOUT:
         logging.basicConfig(filename=datetime.datetime.today().strftime(LOG_NAME_FORMAT), \
