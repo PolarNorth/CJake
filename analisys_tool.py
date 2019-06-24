@@ -754,27 +754,27 @@ class Analyzer:
 
         # Queue to use
         code_processing_queue = deque()
-        # names_in_queue = OrderedSet()    # Paths that are already in the queue
+        names_in_queue = set()    # Paths that are already in the queue
 
         # Process root nodes first
         for node in self.root_nodes:
             code_processing_queue.append(node)
-            names_in_queue = set()
+            # names_in_queue = set()
             names_in_queue.add(node.name)
 
-            while code_processing_queue:
-                current_node = code_processing_queue.popleft()
-                names_in_queue.remove(current_node.name)
-                if current_node.name in not_found_files:
-                    continue
-                
-                logging.debug("Code processing queue - current node : '{}'".format(current_node.name))
-                updated_deps = current_node.find_used_functions()
-                # for dep in current_node.dependencies:
-                for dep in updated_deps:
-                    if not dep.name in names_in_queue:
-                        code_processing_queue.append(dep)
-                        names_in_queue.add(dep.name)
+        while code_processing_queue:
+            current_node = code_processing_queue.popleft()
+            names_in_queue.remove(current_node.name)
+            if current_node.name in not_found_files:
+                continue
+            
+            logging.debug("Code processing queue - current node : '{}'".format(current_node.name))
+            updated_deps = current_node.find_used_functions()
+            # for dep in current_node.dependencies:
+            for dep in updated_deps:
+                if not dep.name in names_in_queue:
+                    code_processing_queue.append(dep)
+                    names_in_queue.add(dep.name)
         
         # Output needed results
         self.print_edge_deps()
