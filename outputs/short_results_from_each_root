@@ -1,0 +1,8 @@
+C style and process alternatives: 
+41/154 modules used, 1075 entities required
+C style and don't process alternatives: 
+61/154 modules used, 1219 entities required
+Process all structures and process alternatives: 
+46/154 modules used, 1268 entities required
+Process all structures and don't process alternatives: 
+33/154 modules used, 797 entities required
