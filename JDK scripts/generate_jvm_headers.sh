@@ -4,13 +4,16 @@
 #                                   trace.make
 #                                   rules.make
 
+# OpenJDK sources path
+JdkSrc="../../jdk8"
+
 ######################################################
 # jvmti:                                             #
 ######################################################
 
-JvmtiSrcDir="../../jdk8/hotspot/src/share/vm/prims/"
-InterpreterSrcDir="../../jdk8/hotspot/src/share/vm/interpreter"
-JvmtiOutDir="./jvmtifiles/"
+JvmtiSrcDir="$JdkSrc/hotspot/src/share/vm/prims/"
+InterpreterSrcDir="$JdkSrc/hotspot/src/share/vm/interpreter"
+JvmtiOutDir="../generated/jvmtifiles/"
 
 mkdir -p jvmtifiles
 
@@ -43,8 +46,8 @@ $XSLT -IN $JvmtiSrcDir/jvmti.xml -XSL $JvmtiSrcDir/jvmtiH.xsl -OUT $JvmtiOutDir/
 # trace:                                             #
 ######################################################
 
-TraceOutDir="./tracefiles"
-TraceSrcDir="../../jdk8/hotspot/src/share/vm/trace"
+TraceOutDir="../generated/tracefiles"
+TraceSrcDir="$JdkSrc/hotspot/src/share/vm/trace"
 
 mkdir -p $TraceOutDir
 
